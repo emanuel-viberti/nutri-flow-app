@@ -2,103 +2,79 @@ import streamlit as st
 from datetime import datetime
 import random
 
-# CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Nutri-Flow Pro", page_icon="🍏", layout="wide")
 
-# CSS PARA LEGIBILIDAD EXTREMA
+# --- CSS PARA LEGIBILIDAD (Mantenemos tus mejoras) ---
 st.markdown("""
     <style>
-    /* 1. Título Principal y Subtítulos (Cuerpo Central) */
-    h1, h2, h3, [data-testid="stMarkdownContainer"] p { 
-        color: #FFFFFF !important; 
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-    }
-    
-    /* 2. Columna Derecha: Métricas y Perfil Nutricional */
-    [data-testid="stMetricLabel"] p { 
-        color: #E0E0E0 !important; 
-        font-size: 1.1rem !important;
-        font-weight: bold !important;
-    }
-    [data-testid="stMetricValue"] { 
-        color: #FFFFFF !important; 
-    }
-    [data-testid="stCaption"] { 
-        color: #B0B0B0 !important; 
-        font-size: 0.9rem !important;
-    }
-
-    /* 3. Barra lateral (Mantenemos fondo blanco para orden) */
+    h1, h2, h3, [data-testid="stMarkdownContainer"] p { color: #FFFFFF !important; }
+    [data-testid="stMetricLabel"] p { color: #E0E0E0 !important; font-weight: bold !important; }
+    [data-testid="stMetricValue"] { color: #FFFFFF !important; }
     [data-testid="stSidebar"] { background-color: #ffffff !important; }
-    [data-testid="stSidebar"] label, [data-testid="stSidebar"] p, [data-testid="stSidebar"] span { 
-        color: #1e1e1e !important; 
-    }
-
-    /* 4. Tarjeta Blanca del Plan (Texto siempre oscuro aquí) */
-    .plan-card h2, .plan-card p, .plan-card b { 
-        color: #1e1e1e !important; 
-    }
-    .plan-card {
-        padding: 30px; border-radius: 15px; background-color: #ffffff; 
-        box-shadow: 0 4px 12px rgba(0,0,0,0.5); border-left: 10px solid #2e7d32;
-        margin-bottom: 20px;
-    }
-
-    /* 5. Botones */
-    .stButton>button { background-color: #2e7d32; color: white !important; font-weight: bold; }
-    .stDownloadButton>button { background-color: #1565c0; color: white !important; }
+    [data-testid="stSidebar"] label, [data-testid="stSidebar"] p { color: #1e1e1e !important; }
+    .plan-card { padding: 30px; border-radius: 15px; background-color: #ffffff; border-left: 10px solid #2e7d32; margin-bottom: 20px; }
+    .plan-card h2, .plan-card p, .plan-card b { color: #1e1e1e !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- BASE DE DATOS ---
-diccionario = {
-    "Argentina 🇦🇷": {"zapallito": "Zapallito", "palta": "Palta", "choclo": "Choclo", "porotos": "Porotos", "frutilla": "Frutilla", "desayuno": "Mate con tostadas de pan integral y queso untable"},
-    "México 🇲🇽": {"zapallito": "Calabacita", "palta": "Aguacate", "choclo": "Elote", "porotos": "Frijoles", "frutilla": "Fresa", "desayuno": "Café de olla con molletes integrales"},
-    "España 🇪🇸": {"zapallito": "Calabacín", "palta": "Aguacate", "choclo": "Maíz", "porotos": "Alubias", "frutilla": "Fresa", "desayuno": "Tostada con aceite de oliva y tomate"}
-}
+# --- BASE DE DATOS CON TAGS CLÍNICOS ---
+# Tags: gf = gluten free, ls = low sodium, veg = vegetariano
+base_recetas = [
+    {"nombre": "Tarta de {zapallito} integral", "entorno": "Oficina", "tags": ["ls"]},
+    {"nombre": "Ensalada de {porotos} y {choclo}", "entorno": "Oficina", "tags": ["gf", "ls", "veg"]},
+    {"nombre": "Wrap de pollo y {palta}", "entorno": "Oficina", "tags": ["ls"]},
+    {"nombre": "Wok de vegetales y arroz", "entorno": "Oficina", "tags": ["gf", "ls", "veg"]},
+    {"nombre": "Milanesas con puré", "entorno": "Hogar", "tags": ["ls"]},
+    {"nombre": "Guiso de lentejas y calabaza", "entorno": "Hogar", "tags": ["gf", "ls", "veg"]},
+    {"nombre": "Pescado al horno con vegetales", "entorno": "Hogar", "tags": ["gf", "ls"]},
+    {"nombre": "Omelette de espinaca y queso", "entorno": "Hogar", "tags": ["gf", "ls", "veg"]}
+]
 
-recetas_oficina = ["Tarta de {zapallito} integral con semillas", "Ensalada de {porotos}, {choclo} y huevo", "Wrap integral de pollo y {palta}", "Wok de arroz con vegetales"]
-recetas_hogar = ["Milanesas de pollo al horno con puré", "Guiso de lentejas con calabaza", "Pescado al horno con rodajas de {zapallito}", "Pastel de papa y carne magra"]
+diccionario = {
+    "Argentina 🇦🇷": {"zapallito": "Zapallito", "palta": "Palta", "choclo": "Choclo", "porotos": "Porotos", "desayuno": "Mate con tostadas"},
+    "México 🇲🇽": {"zapallito": "Calabacita", "palta": "Aguacate", "choclo": "Elote", "porotos": "Frijoles", "desayuno": "Café con molletes"},
+    "España 🇪🇸": {"zapallito": "Calabacín", "palta": "Aguacate", "choclo": "Maíz", "porotos": "Alubias", "desayuno": "Pan con tomate"}
+}
 
 # --- INTERFAZ ---
 st.title("🥗 Nutri-Flow: Gestión Profesional")
 
 with st.sidebar:
     st.header("⚙️ Configuración")
-    nombre = st.text_input("Nombre del Paciente", value="Emanuel")
-    pais = st.selectbox("País de Residencia", list(diccionario.keys()))
-    entorno = st.radio("Logística del Almuerzo", ["Oficina (Recalentable)", "Hogar (Cocina en el momento)"])
+    nombre = st.text_input("Paciente", value="Emanuel")
+    pais = st.selectbox("País", list(diccionario.keys()))
+    entorno = st.radio("Logística", ["Oficina", "Hogar"])
     
-    mes = datetime.now().month
-    es_invierno = (3 <= mes <= 8) if pais == "Argentina 🇦🇷" else (mes >= 9 or mes <= 2)
-    temporada_txt = "Otoño/Invierno" if es_invierno else "Primavera/Verano"
-    st.write(f"📅 **Temporada:** {temporada_txt}")
+    st.divider()
+    st.header("🏥 Filtros Clínicos")
+    es_celiaco = st.checkbox("Celíaco (Sin TACC)")
+    es_hipertenso = st.checkbox("Hipertenso (Bajo Sodio)")
 
-col_izq, col_der = st.columns([2, 1])
+# --- LÓGICA DE FILTRADO ---
+if st.button("🚀 GENERAR PLAN NUTRICIONAL"):
+    term = diccionario[pais]
+    
+    # Filtrar recetas por entorno y luego por patología
+    recetas_posibles = [r for r in base_recetas if r["entorno"] == entorno]
+    
+    if es_celiaco:
+        recetas_posibles = [r for r in recetas_posibles if "gf" in r["tags"]]
+    if es_hipertenso:
+        recetas_posibles = [r for r in recetas_posibles if "ls" in r["tags"]]
 
-with col_izq:
-    if st.button("🚀 GENERAR PLAN NUTRICIONAL"):
-        term = diccionario[pais]
-        plato = random.choice(recetas_oficina if "Oficina" in entorno else recetas_hogar).format(**term)
-        desayuno = term["desayuno"]
+    if not recetas_posibles:
+        st.error("No hay recetas que cumplan todos los filtros. ¡Expandamos la base!")
+    else:
+        plato_data = random.choice(recetas_posibles)
+        plato_final = plato_data["nombre"].format(**term)
         
+        # Renderizado del Plan
         st.markdown(f"""
         <div class="plan-card">
-            <h2 style='margin-top:0;'>📋 Plan de Alimentación</h2>
-            <p><b>Paciente:</b> {nombre}</p>
-            <p><b>Región:</b> {pais} | <b>Temporada:</b> {temporada_txt}</p>
+            <h2>📋 Plan Adaptado</h2>
+            <p><b>Paciente:</b> {nombre} {'⚠️ (Celíaco)' if es_celiaco else ''}</p>
             <hr>
-            <p><b>🌅 Desayuno / Meriendas:</b><br>{desayuno}</p>
-            <p><b>🍱 Almuerzo Sugerido:</b><br>{plato}</p>
+            <p><b>🌅 Desayuno:</b> {term['desayuno'] if not es_celiaco else 'Galletas de arroz con queso'}</p>
+            <p><b>🍱 Almuerzo:</b> {plato_final}</p>
         </div>
         """, unsafe_allow_html=True)
-        
-        texto_export = f"PACIENTE: {nombre}\nPAÍS: {pais}\nDESAYUNO: {desayuno}\nALMUERZO: {plato}"
-        st.download_button(label="📥 DESCARGAR PLAN (.TXT)", data=texto_export, file_name=f"Plan_{nombre}.txt")
-
-with col_der:
-    st.markdown("### 📊 Perfil Nutricional")
-    st.metric("Energía", "1950 kcal")
-    st.metric("Proteínas", "110g")
-    st.progress(0.6)
-    st.caption("Balance: Carbs 50% | Prot 25% | Grasa 25%")
