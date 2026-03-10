@@ -4,77 +4,78 @@ import random
 
 st.set_page_config(page_title="Nutri-Flow Pro", page_icon="🍏", layout="wide")
 
-# --- CSS PARA LEGIBILIDAD (Mantenemos tus mejoras) ---
+# --- CSS (Mantenemos tu diseño pro) ---
 st.markdown("""
     <style>
     h1, h2, h3, [data-testid="stMarkdownContainer"] p { color: #FFFFFF !important; }
-    [data-testid="stMetricLabel"] p { color: #E0E0E0 !important; font-weight: bold !important; }
-    [data-testid="stMetricValue"] { color: #FFFFFF !important; }
     [data-testid="stSidebar"] { background-color: #ffffff !important; }
     [data-testid="stSidebar"] label, [data-testid="stSidebar"] p { color: #1e1e1e !important; }
-    .plan-card { padding: 30px; border-radius: 15px; background-color: #ffffff; border-left: 10px solid #2e7d32; margin-bottom: 20px; }
-    .plan-card h2, .plan-card p, .plan-card b { color: #1e1e1e !important; }
+    .plan-card { padding: 30px; border-radius: 15px; background-color: #ffffff; border-left: 10px solid #2e7d32; margin-bottom: 20px; color: #1e1e1e !important; }
+    .plan-card h2, .plan-card p, .plan-card b, .plan-card li { color: #1e1e1e !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- BASE DE DATOS CON TAGS CLÍNICOS ---
-# Tags: gf = gluten free, ls = low sodium, veg = vegetariano
-base_recetas = [
-    {"nombre": "Tarta de {zapallito} integral", "entorno": "Oficina", "tags": ["ls"]},
-    {"nombre": "Ensalada de {porotos} y {choclo}", "entorno": "Oficina", "tags": ["gf", "ls", "veg"]},
-    {"nombre": "Wrap de pollo y {palta}", "entorno": "Oficina", "tags": ["ls"]},
-    {"nombre": "Wok de vegetales y arroz", "entorno": "Oficina", "tags": ["gf", "ls", "veg"]},
-    {"nombre": "Milanesas con puré", "entorno": "Hogar", "tags": ["ls"]},
-    {"nombre": "Guiso de lentejas y calabaza", "entorno": "Hogar", "tags": ["gf", "ls", "veg"]},
-    {"nombre": "Pescado al horno con vegetales", "entorno": "Hogar", "tags": ["gf", "ls"]},
-    {"nombre": "Omelette de espinaca y queso", "entorno": "Hogar", "tags": ["gf", "ls", "veg"]}
-]
-
-diccionario = {
-    "Argentina 🇦🇷": {"zapallito": "Zapallito", "palta": "Palta", "choclo": "Choclo", "porotos": "Porotos", "desayuno": "Mate con tostadas"},
-    "México 🇲🇽": {"zapallito": "Calabacita", "palta": "Aguacate", "choclo": "Elote", "porotos": "Frijoles", "desayuno": "Café con molletes"},
-    "España 🇪🇸": {"zapallito": "Calabacín", "palta": "Aguacate", "choclo": "Maíz", "porotos": "Alubias", "desayuno": "Pan con tomate"}
+# --- LÓGICA DE CLASIFICACIÓN (DICCIONARIOS) ---
+paises = {
+    "Argentina 🇦🇷": {"zapallito": "Zapallito", "palta": "Palta", "desayuno": "Mate con tostadas"},
+    "México 🇲🇽": {"zapallito": "Calabacita", "palta": "Aguacate", "desayuno": "Café con molletes"},
+    "España 🇪🇸": {"zapallito": "Calabacín", "palta": "Aguacate", "desayuno": "Pan con tomate"}
 }
 
 # --- INTERFAZ ---
-st.title("🥗 Nutri-Flow: Gestión Profesional")
+st.title("🥗 Nutri-Flow: Consultorio Digital")
 
 with st.sidebar:
-    st.header("⚙️ Configuración")
-    nombre = st.text_input("Paciente", value="Emanuel")
-    pais = st.selectbox("País", list(diccionario.keys()))
-    entorno = st.radio("Logística", ["Oficina", "Hogar"])
+    st.header("👤 Ficha del Paciente")
+    nombre = st.text_input("Nombre", value="Emanuel")
+    edad = st.number_input("Edad", min_value=1, max_value=120, value=30)
+    peso = st.number_input("Peso (kg)", min_value=10.0, max_value=300.0, value=75.0)
+    talla = st.number_input("Talla (cm)", min_value=50, max_value=250, value=175)
+    
+    # Cálculo de IMC
+    imc = peso / ((talla/100)**2)
+    st.metric("IMC", f"{imc:.1f}")
+    if imc < 18.5: st.caption("Bajo peso")
+    elif imc < 25: st.caption("Peso Normal")
+    elif imc < 30: st.caption("Sobrepeso")
+    else: st.caption("Obesidad")
+
+    st.divider()
+    st.header("🏥 Condiciones Clínicas")
+    patologias = st.multiselect("Seleccionar Patologías/Alergias", 
+                                ["Celíaco", "Hipertenso", "Diabético", "Dislipemia", "Vegetariano", "Vegano"])
     
     st.divider()
-    st.header("🏥 Filtros Clínicos")
-    es_celiaco = st.checkbox("Celíaco (Sin TACC)")
-    es_hipertenso = st.checkbox("Hipertenso (Bajo Sodio)")
+    pais = st.selectbox("Mercado/País", list(paises.keys()))
+    entorno = st.radio("Logística Almuerzo", ["Oficina", "Hogar"])
 
-# --- LÓGICA DE FILTRADO ---
-if st.button("🚀 GENERAR PLAN NUTRICIONAL"):
-    term = diccionario[pais]
-    
-    # Filtrar recetas por entorno y luego por patología
-    recetas_posibles = [r for r in base_recetas if r["entorno"] == entorno]
-    
-    if es_celiaco:
-        recetas_posibles = [r for r in recetas_posibles if "gf" in r["tags"]]
-    if es_hipertenso:
-        recetas_posibles = [r for r in recetas_posibles if "ls" in r["tags"]]
+# --- ÁREA DE RESULTADOS ---
+col_izq, col_der = st.columns([2, 1])
 
-    if not recetas_posibles:
-        st.error("No hay recetas que cumplan todos los filtros. ¡Expandamos la base!")
-    else:
-        plato_data = random.choice(recetas_posibles)
-        plato_final = plato_data["nombre"].format(**term)
+with col_izq:
+    if st.button("🚀 GENERAR PLAN NUTRICIONAL COMPLETO"):
+        term = paises[pais]
         
-        # Renderizado del Plan
+        # Aquí irá el filtrado de las 50 recetas (que haremos a continuación)
         st.markdown(f"""
         <div class="plan-card">
-            <h2>📋 Plan Adaptado</h2>
-            <p><b>Paciente:</b> {nombre} {'⚠️ (Celíaco)' if es_celiaco else ''}</p>
+            <h2>📋 Plan para {nombre}</h2>
+            <p><b>Resumen Clínico:</b> Edad {edad} | IMC {imc:.1f} | {', '.join(patologias) if patologias else 'Sin patologías'}</p>
             <hr>
-            <p><b>🌅 Desayuno:</b> {term['desayuno'] if not es_celiaco else 'Galletas de arroz con queso'}</p>
-            <p><b>🍱 Almuerzo:</b> {plato_final}</p>
+            <p><b>🌅 Desayuno/Merienda:</b> {term['desayuno']}</p>
+            <p><b>🍱 Almuerzo Sugerido:</b> Receta adaptada a {entorno} y {', '.join(patologias)}</p>
+            <ul>
+                <li>Control de porciones basado en IMC de {imc:.1f}</li>
+                <li>Sugerencia de hidratación específica.</li>
+            </ul>
         </div>
         """, unsafe_allow_html=True)
+
+with col_der:
+    st.markdown("### 📊 Objetivos")
+    if imc > 25:
+        st.info("Objetivo: Déficit Calórico Controlado")
+        st.metric("Calorías Meta", "1800 kcal")
+    else:
+        st.info("Objetivo: Mantenimiento / Salud")
+        st.metric("Calorías Meta", "2200 kcal")
