@@ -62,7 +62,7 @@ with st.sidebar:
     
     mes = datetime.now().month
     es_invierno = (3 <= mes <= 8) if pais == "Argentina 🇦🇷" else (mes >= 9 or mes <= 2)
-    temporada_txt = "Otoño/Invierno" si es_invierno else "Primavera/Verano"
+    temporada_txt = "Otoño/Invierno" if es_invierno else "Primavera/Verano"
     st.write(f"📅 **Temporada:** {temporada_txt}")
     st.divider()
 
