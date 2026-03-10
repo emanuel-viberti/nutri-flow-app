@@ -1,54 +1,66 @@
 import streamlit as st
 from datetime import datetime
+import random
 
-# Configuración de página
-st.set_page_config(page_title="Nutri-Flow Global", page_icon="🥗")
+st.set_page_config(page_title="Nutri-Flow Pro", page_icon="🍎")
+
+# --- BASE DE DATOS DE DICCIONARIO POR PAÍS ---
+diccionario = {
+    "Argentina 🇦🇷": {"zapallito": "Zapallito", "palta": "Palta", "choclo": "Choclo", "porotos": "Porotos", "frutilla": "Frutilla"},
+    "México 🇲🇽": {"zapallito": "Calabacita", "palta": "Aguacate", "choclo": "Elote", "porotos": "Frijoles", "frutilla": "Fresa"},
+    "España 🇪🇸": {"zapallito": "Calabacín", "palta": "Aguacate", "choclo": "Maíz", "porotos": "Alubias", "frutilla": "Fresa"}
+}
+
+# --- BASE DE DATOS DE 50 RECETAS (Muestra para el MVP) ---
+# Aquí cargo las categorías que aprobaste ayer
+recetas_oficina = ["Tarta de {zapallito} integral", "Ensalada de {porotos} y {choclo}", "Wrap de pollo y {palta}", "Arroz primavera con huevo"]
+recetas_invierno = ["Guiso de lentejas nutri", "Cazuela de pollo y vegetales", "Pastel de papa y carne magra", "Sopa crema de calabaza"]
+recetas_verano = ["Ensalada de fideos y atún", "Pechuga al limón con tomate", "Salpicón de ave", "Tostadas con hummus y vegetales"]
 
 st.title("🍎 Nutri-Flow: Gestión Inteligente")
-st.markdown("---")
 
-# --- FICHA DEL PACIENTE (LATERAL) ---
 with st.sidebar:
-    st.header("📋 Ficha del Paciente")
-    nombre = st.text_input("Nombre del Paciente")
-    pais = st.selectbox("País de Residencia", ["Argentina 🇦🇷", "México 🇲🇽", "España 🇪🇸"])
-    objetivo = st.selectbox("Objetivo", ["Descenso de peso", "Mantenimiento", "Hipertrofia"])
-    entorno = st.selectbox("Entorno Almuerzo", ["Hogar", "Oficina (con microondas)", "Oficina (sin recursos)"])
+    st.header("📋 Configuración")
+    nombre = st.text_input("Paciente", value="Emanuel")
+    pais = st.selectbox("País", list(diccionario.keys()))
+    entorno = st.selectbox("Lugar de Almuerzo", ["Oficina (con micro)", "Hogar", "Sin recursos"])
     
-    st.divider()
-    st.write("🔧 **Configuración del Software**")
-    mes_actual = datetime.now().month
-    hemisferio = "Sur" if pais == "Argentina 🇦🇷" else "Norte"
-    temporada = "Otoño/Invierno" if (hemisferio == "Sur" and 3 <= mes_actual <= 8) or (hemisferio == "Norte" and (mes_actual >= 9 or mes_actual <= 2)) else "Primavera/Verano"
-    st.info(f"Temporada detectada: **{temporada}**")
+    # Lógica de Temporada Automática
+    mes = datetime.now().month
+    hemisferio_sur = True if pais == "Argentina 🇦🇷" else False
+    es_invierno = (3 <= mes <= 8) if hemisferio_sur else (mes >= 9 or mes <= 2)
+    temporada_txt = "Otoño/Invierno" if es_invierno else "Primavera/Verano"
+    st.info(f"📅 Temporada: {temporada_txt}")
 
-# --- LÓGICA DE RECETAS (EJEMPLO DE LAS 50) ---
-# Aquí el software decide qué mostrar según tus reglas
-st.subheader(f"Plan Sugerido para: {nombre if nombre else '...'}")
-
-if st.button("🚀 Generar Menú Inteligente"):
+# --- GENERADOR ---
+if st.button("🚀 Generar Plan Personalizado"):
+    st.subheader(f"Plan para {nombre}")
+    
+    # 1. Selección de Receta según lógica
+    term = diccionario[pais] # Diccionario del país elegido
+    
+    if "Oficina" in entorno:
+        plato_base = random.choice(recetas_oficina)
+    elif es_invierno:
+        plato_base = random.choice(recetas_invierno)
+    else:
+        plato_base = random.choice(recetas_verano)
+        
+    # 2. Traducción automática de ingredientes
+    plato_final = plato_base.format(**term)
+    
+    # --- MOSTRAR RESULTADO ---
     col1, col2 = st.columns(2)
-    
     with col1:
-        st.write("### 🌅 Desayuno/Merienda")
-        if pais == "Argentina 🇦🇷":
-            st.success("Opción: Mate con tostadas de pan integral y queso untable.")
-        elif pais == "México 🇲🇽":
-            st.success("Opción: Café de olla con molletes integrales (poca grasa).")
-        else:
-            st.success("Opción: Tostada con aceite de oliva virgen y tomate triturado.")
-
+        st.metric("Calorías Sugeridas", "1950 kcal")
+        st.write("### 🌅 Desayuno")
+        opcion_desayuno = "Mate con tostadas" if pais == "Argentina 🇦🇷" else "Café con molletes" if pais == "México 🇲🇽" else "Pan con tomate y oliva"
+        st.success(opcion_desayuno)
+        
     with col2:
-        st.write("### 🍱 Almuerzo (Adaptado)")
-        # Lógica de entorno + temporada
-        if entorno == "Oficina (con microondas)":
-            st.warning("Plato: Tarta integral de zapallitos (Fácil de calentar)")
-            st.caption("💡 Tip: Ideal para llevar en táper, no pierde textura.")
-        else:
-            if temporada == "Otoño/Invierno":
-                st.warning("Plato: Guiso de lentejas saludable con cubos de calabaza.")
-            else:
-                st.warning("Plato: Ensalada completa de fideos integrales y atún.")
-
-    st.markdown("---")
-    st.button("🔄 Cambiar opción (Intercambio)")
+        st.metric("Proteínas", "110g")
+        st.write(f"### 🍱 Almuerzo ({entorno})")
+        st.warning(plato_final)
+        
+    st.divider()
+    st.info("💡 Este plan se ajustó automáticamente a los ingredientes disponibles en tu región y la temporada actual.")
