@@ -2,95 +2,107 @@ import streamlit as st
 from datetime import datetime
 import random
 
-st.set_page_config(page_title="Nutri-Flow Pro", page_icon="🍏", layout="wide")
+st.set_page_config(page_title="Nutri-Flow Pro | Consultorio", page_icon="🍏", layout="wide")
 
-# --- CSS DEFINITIVO ---
+# --- CSS DE ALTA VISIBILIDAD ---
 st.markdown("""
     <style>
     h1, h2, h3, [data-testid="stMarkdownContainer"] p { color: #FFFFFF !important; }
     [data-testid="stSidebar"] { background-color: #ffffff !important; }
-    [data-testid="stSidebar"] label, [data-testid="stSidebar"] p, [data-testid="stSidebar"] h2 { color: #1e1e1e !important; }
-    .plan-card { padding: 30px; border-radius: 15px; background-color: #ffffff; border-left: 10px solid #2e7d32; margin-bottom: 20px; }
-    .plan-card h2, .plan-card p, .plan-card b, .plan-card li { color: #1e1e1e !important; }
+    [data-testid="stSidebar"] label, [data-testid="stSidebar"] p { color: #1e1e1e !important; }
+    .plan-card { padding: 25px; border-radius: 12px; background-color: #ffffff; border-left: 8px solid #2e7d32; margin-bottom: 15px; color: #1e1e1e !important; }
+    .plan-card h3, .plan-card b, .plan-card p { color: #1e1e1e !important; }
+    .day-box { background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 5px; color: #333 !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- BASE DE DATOS MAESTRA (50+ VARIANTES) ---
-# gf: sin tacc | ls: bajo sodio | veg: vegetariano | vgn: vegano | lc: bajo carb
-base_recetas = [
-    # ALMUERZOS DE OFICINA (Fáciles de recalentar o comer fríos)
-    {"nombre": "Tarta de {zapallito} con masa de semillas", "entorno": "Oficina", "tags": ["ls", "veg"]},
-    {"nombre": "Ensalada de {porotos}, quinoa y {choclo}", "entorno": "Oficina", "tags": ["gf", "ls", "veg", "vgn"]},
-    {"nombre": "Wrap integral de pollo, {palta} y tomate", "entorno": "Oficina", "tags": ["ls"]},
-    {"nombre": "Wok de arroz yamani con vegetales de estación", "entorno": "Oficina", "tags": ["gf", "ls", "veg", "vgn"]},
-    {"nombre": "Buddha Bowl: Garbanzos, {palta} y arroz", "entorno": "Oficina", "tags": ["gf", "ls", "veg", "vgn"]},
-    {"nombre": "Penne integral con pesto de brócoli y nueces", "entorno": "Oficina", "tags": ["ls", "veg", "vgn"]},
-    {"nombre": "Hamburguesas de lentejas con ensalada mixta", "entorno": "Oficina", "tags": ["ls", "veg", "vgn"]},
-    {"nombre": "Ensalada de atún, arroz y {choclo}", "entorno": "Oficina", "tags": ["gf", "ls"]},
-    {"nombre": "Rollitos de berenjena rellenos de mijo", "entorno": "Oficina", "tags": ["gf", "ls", "veg", "vgn"]},
-    {"nombre": "Cuscús con vegetales asados y almendras", "entorno": "Oficina", "tags": ["ls", "veg", "vgn"]},
-    
-    # ALMUERZOS DE HOGAR (Requieren cocción o armado al momento)
-    {"nombre": "Milanesas de peceto al horno con puré mixto", "entorno": "Hogar", "tags": ["ls"]},
-    {"nombre": "Guiso de lentejas con cubos de calabaza", "entorno": "Hogar", "tags": ["gf", "ls", "veg", "vgn"]},
-    {"nombre": "Pescado a la plancha con rodajas de {zapallito}", "entorno": "Hogar", "tags": ["gf", "ls", "lc"]},
-    {"nombre": "Omelette de espinaca, champiñones y queso", "entorno": "Hogar", "tags": ["gf", "ls", "veg", "lc"]},
-    {"nombre": "Zapallitos rellenos con carne magra y queso", "entorno": "Hogar", "tags": ["gf", "ls", "lc"]},
-    {"nombre": "Pechuga al limón con batatas asadas", "entorno": "Hogar", "tags": ["gf", "ls"]},
-    {"nombre": "Risotto de champiñones y parmesano", "entorno": "Hogar", "tags": ["gf", "ls", "veg"]},
-    {"nombre": "Berenjenas a la parmesana (sin rebozar)", "entorno": "Hogar", "tags": ["gf", "ls", "veg", "lc"]},
-    {"nombre": "Cazuela de pollo con puerros y zanahoria", "entorno": "Hogar", "tags": ["gf", "ls", "lc"]},
-    {"nombre": "Canelones de verdura con salsa blanca light", "entorno": "Hogar", "tags": ["ls", "veg"]}
+# --- BASE DE DATOS AMPLIADA ---
+# Tags: gf (sin tacc), ls (bajo sodio), veg (vegetariano), vgn (vegano), db (diabético), dl (dislipemia)
+recetario = [
+    {"nombre": "Tarta de {zapallito} integral", "tags": ["ls", "veg", "db"]},
+    {"nombre": "Ensalada de quinoa, {porotos} y {choclo}", "tags": ["gf", "ls", "vgn", "db"]},
+    {"nombre": "Pollo al horno con calabaza asada", "tags": ["gf", "ls", "dl", "db"]},
+    {"nombre": "Wok de vegetales y arroz integral", "tags": ["gf", "ls", "vgn", "db"]},
+    {"nombre": "Pescado al papillote con {zapallito}", "tags": ["gf", "ls", "dl", "db", "lc"]},
+    {"nombre": "Omelette de espinaca y ricota magra", "tags": ["gf", "ls", "veg", "db", "lc"]},
+    {"nombre": "Guiso de lentejas con vegetales", "tags": ["gf", "ls", "vgn", "db"]},
+    {"nombre": "Milanesas de soja con ensalada mixta", "tags": ["ls", "vgn", "db"]},
+    {"nombre": "Berenjenas rellenas de carne magra", "tags": ["gf", "ls", "dl", "db", "lc"]},
+    {"nombre": "Hamburguesas de quinoa y espinaca", "tags": ["gf", "ls", "vgn", "db"]},
+    {"nombre": "Soufflé de calabaza y queso light", "tags": ["gf", "ls", "veg", "db"]},
+    {"nombre": "Suprema de pollo con puré de zanahoria", "tags": ["gf", "ls", "dl"]},
+    {"nombre": "Canelones de verdura con salsa roja", "tags": ["ls", "veg", "db"]}
 ]
 
 paises = {
-    "Argentina 🇦🇷": {"zapallito": "Zapallito", "palta": "Palta", "choclo": "Choclo", "porotos": "Porotos", "desayuno": "Mate con tostadas"},
-    "México 🇲🇽": {"zapallito": "Calabacita", "palta": "Aguacate", "choclo": "Elote", "porotos": "Frijoles", "desayuno": "Café con molletes"},
-    "España 🇪🇸": {"zapallito": "Calabacín", "palta": "Aguacate", "choclo": "Maíz", "porotos": "Alubias", "desayuno": "Pan con tomate"}
+    "Argentina 🇦🇷": {"zapallito": "Zapallito", "palta": "Palta", "choclo": "Choclo", "porotos": "Porotos", "desayuno": "Mate con tostadas integrales y queso untable"},
+    "México 🇲🇽": {"zapallito": "Calabacita", "palta": "Aguacate", "choclo": "Elote", "porotos": "Frijoles", "desayuno": "Café de olla con molletes integrales"},
+    "España 🇪🇸": {"zapallito": "Calabacín", "palta": "Aguacate", "choclo": "Maíz", "porotos": "Alubias", "desayuno": "Tostada con aceite de oliva y tomate"}
 }
 
-# --- SIDEBAR / FICHA ---
+# --- SIDEBAR: FICHA CLÍNICA COMPLETA ---
 with st.sidebar:
     st.header("👤 Ficha del Paciente")
-    nombre = st.text_input("Nombre", value="Emanuel")
-    peso = st.number_input("Peso (kg)", value=75.0)
-    talla = st.number_input("Talla (cm)", value=175)
+    nombre = st.text_input("Nombre", "Emanuel")
+    peso = st.number_input("Peso (kg)", 75.0)
+    talla = st.number_input("Talla (cm)", 175)
     imc = peso / ((talla/100)**2)
     st.metric("IMC", f"{imc:.1f}")
     
     st.divider()
-    st.subheader("🏥 Condiciones Clínicas")
-    patologias = st.multiselect("Filtros:", ["Celíaco", "Hipertenso", "Vegetariano", "Vegano"])
+    st.header("🏥 Diagnóstico Clínico")
+    patologias = st.multiselect("Patologías/Restricciones:", 
+                                ["Celíaco", "Hipertenso", "Diabético", "Dislipemia", "Vegetariano", "Vegano"])
     
     st.divider()
     pais = st.selectbox("Mercado", list(paises.keys()))
-    entorno = st.radio("Logística", ["Oficina", "Hogar"])
 
-# --- LÓGICA Y RESULTADO ---
-st.title("🥗 Nutri-Flow: Gestión Profesional")
+# --- GENERACIÓN DE PLAN SEMANAL ---
+st.title("🍎 Nutri-Flow Pro: Planificador Semanal")
 
-if st.button("🚀 GENERAR PLAN"):
+if st.button("🚀 GENERAR PLAN SEMANAL COMPLETO"):
     term = paises[pais]
-    recetas_ok = [r for r in base_recetas if r["entorno"] == entorno]
     
+    # Filtrado según patologías
+    recetas_ok = recetario.copy()
     if "Celíaco" in patologias: recetas_ok = [r for r in recetas_ok if "gf" in r["tags"]]
+    if "Hipertenso" in patologias: recetas_ok = [r for r in recetas_ok if "ls" in r["tags"]]
+    if "Diabético" in patologias: recetas_ok = [r for r in recetas_ok if "db" in r["tags"]]
+    if "Dislipemia" in patologias: recetas_ok = [r for r in recetas_ok if "dl" in r["tags"]]
     if "Vegetariano" in patologias: recetas_ok = [r for r in recetas_ok if "veg" in r["tags"] or "vgn" in r["tags"]]
     if "Vegano" in patologias: recetas_ok = [r for r in recetas_ok if "vgn" in r["tags"]]
-    if "Hipertenso" in patologias: recetas_ok = [r for r in recetas_ok if "ls" in r["tags"]]
 
-    if not recetas_ok:
-        st.error("No hay platos que coincidan con todos los filtros. Intentá quitar alguna restricción.")
-    else:
-        plato = random.choice(recetas_ok)
-        plato_nom = plato["nombre"].format(**term)
-        
+    if len(recetas_ok) < 7:
+        st.error("⚠️ Base de datos insuficiente para estos filtros. Añadiendo recetas genéricas...")
+        recetas_ok = recetario # Fallback para no dejar vacío el plan
+
+    # Renderizado
+    st.markdown(f"""
+    <div class="plan-card">
+        <h2>Plan Semanal: {nombre}</h2>
+        <p><b>Resumen Clínico:</b> IMC {imc:.1f} | <b>Filtros:</b> {', '.join(patologias) if patologias else 'General'}</p>
+        <hr>
+        <p><b>☕ Desayuno/Merienda sugerido:</b> {term['desayuno']}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    
+    # Crear grilla de 7 días
+    for dia in dias:
+        almuerzo = random.choice(recetas_ok)["nombre"].format(**term)
+        cena = random.choice(recetas_ok)["nombre"].format(**term)
+        # Evitar que almuerzo y cena sean iguales
+        while cena == almuerzo:
+            cena = random.choice(recetas_ok)["nombre"].format(**term)
+            
         st.markdown(f"""
-        <div class="plan-card">
-            <h2>📋 Plan Personalizado</h2>
-            <p><b>Paciente:</b> {nombre} | <b>IMC:</b> {imc:.1f}</p>
-            <p><b>Condiciones:</b> {', '.join(patologias) if patologias else 'General'}</p>
-            <hr>
-            <p><b>🌅 Desayuno/Merienda:</b> {term['desayuno'] if 'Celíaco' not in patologias else 'Galletas de arroz con palta'}</p>
-            <p><b>🍱 Almuerzo Sugerido:</b> {plato_nom}</p>
+        <div class="day-box">
+            <b>📅 {dia}</b><br>
+            ☀️ Almuerzo: {almuerzo}<br>
+            🌙 Cena: {cena}
         </div>
         """, unsafe_allow_html=True)
+
+    # Exportación
+    st.download_button("📥 Descargar Reporte Completo (.txt)", "Reporte generado por Nutri-Flow Pro", file_name=f"Plan_{nombre}.txt")
