@@ -17,6 +17,7 @@ st.markdown("""
     .meal-box { margin-bottom: 12px; padding: 8px; border-bottom: 1px solid #eee; }
     .receta-text { font-size: 0.85em; color: #555; font-style: italic; display: block; margin-top: 2px; }
     .macro-tag { font-size: 0.75em; background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; }
+    .metric-box { background: #f0f2f6; padding: 15px; border-radius: 10px; color: #333; border: 1px solid #ccc; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -52,11 +53,20 @@ with st.sidebar:
     talla = st.number_input("Talla (cm)", 175)
     
     actividad_desc = st.selectbox("Nivel de Actividad Física", [
-        "Sedentario (Poco o nada)", "Leve (1-3 días/sem)", 
-        "Moderado (3-5 días/sem)", "Fuerte (6-7 días/sem)", "Muy Fuerte (Atleta)"
+        "Sedentario (1.2)", "Leve (1.375)", 
+        "Moderado (1.55)", "Fuerte (1.725)", "Muy Fuerte (1.9)"
     ])
-    naf_map = {"Sedentario (Poco o nada)": 1.2, "Leve (1-3 días/sem)": 1.375, "Moderado (3-5 días/sem)": 1.55, "Fuerte (6-7 días/sem)": 1.725, "Muy Fuerte (Atleta)": 1.9}
-    naf = naf_map[actividad_desc]
+    naf = float(actividad_desc.split("(")[1].replace(")", ""))
+
+    st.divider()
+    st.header("⚖️ Distribución de Macros (%)")
+    p_carb = st.slider("Carbohidratos", 0, 100, 50)
+    p_prot = st.slider("Proteínas", 0, 100, 20)
+    p_gras = st.slider("Grasas", 0, 100, 30)
+    
+    total_perc = p_carb + p_prot + p_gras
+    if total_perc != 100:
+        st.warning(f"⚠️ Total: {total_perc}% (Debe ser 100%)")
 
     st.divider()
     pats = st.multiselect("Patologías:", ["Celíaco", "Hipertenso", "Diabético", "Vegetariano", "Vegano", "Dislipemia"])
@@ -85,21 +95,30 @@ col_m, col_p = st.columns([1, 2])
 
 with col_m:
     st.markdown(f"""
-    <div style="background:#f0f2f6; padding:15px; border-radius:10px; color:#333;">
+    <div class="metric-box">
         <h4>📊 Informe Metabólico</h4>
         <b>IMC:</b> {imc:.1f}<br>
         <b>GET:</b> {get:.0f} kcal/día<br>
         <hr>
-        <b>Estrategia:</b> {actividad_desc}
+        <b>Gramos Calculados:</b><br>
+        🍞 CHO: {(get * p_carb / 400):.1f}g<br>
+        🍗 PRO: {(get * p_prot / 400):.1f}g<br>
+        🥑 LIP: {(get * p_gras / 900):.1f}g
     </div>
     """, unsafe_allow_html=True)
+    
+    
 
-if st.button("🚀 GENERAR / REFRESCAR PLAN SEMANAL"):
-    st.session_state.listo = True
-    term = paises[pais]
-    for i in range(7):
-        st.session_state[f"d_{i}"] = [obtener_menu(desayunos, pats, term), obtener_menu(comidas, pats, term), 
-                                      obtener_menu(desayunos, pats, term), obtener_menu(comidas, pats, term)]
+with col_p:
+    if total_perc == 100:
+        if st.button("🚀 GENERAR / REFRESCAR PLAN SEMANAL"):
+            st.session_state.listo = True
+            term = paises[pais]
+            for i in range(7):
+                st.session_state[f"d_{i}"] = [obtener_menu(desayunos, pats, term), obtener_menu(comidas, pats, term), 
+                                              obtener_menu(desayunos, pats, term), obtener_menu(comidas, pats, term)]
+    else:
+        st.error("Corregí los macros en la barra lateral para generar el plan.")
 
 if "listo" in st.session_state:
     dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
