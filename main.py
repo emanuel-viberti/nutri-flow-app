@@ -15,34 +15,41 @@ st.markdown("""
         box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
     .macro-tag { font-size: 0.75em; background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
-    .metric-box { background: #f0f2f6; padding: 15px; border-radius: 10px; color: #333; border: 1px solid #ccc; }
+    .metric-box { background: #f0f2f6; padding: 15px; border-radius: 10px; color: #333; border: 1px solid #ccc; margin-bottom: 10px;}
     .pi-box { background: #fff3e0; border: 1px solid #ff9800; padding: 8px; border-radius: 8px; color: #e65100; margin-top: 5px;}
+    .receta-text { font-size: 0.85em; color: #666; font-style: italic; display: block; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- BASE DE DATOS ---
+paises = {
+    "Argentina 🇦🇷": {"zapallito": "Zapallito", "palta": "Palta", "choclo": "Choclo", "frutilla": "Frutilla"},
+    "México 🇲🇽": {"zapallito": "Calabacita", "palta": "Aguacate", "choclo": "Elote", "frutilla": "Fresa"},
+    "España 🇪🇸": {"zapallito": "Calabacín", "palta": "Aguacate", "choclo": "Maíz", "frutilla": "Fresa"}
+}
+
 desayunos = [
-    {"nombre": "Yogur con granola y {frutilla}", "tags": ["gf", "db"], "rec": "200g yogur + 3 cdas granola", "p": 8, "c": 30},
-    {"nombre": "Tostadas con {palta} y huevo", "tags": ["db", "ls"], "rec": "1 tostada + 1/2 palta + 1 huevo", "p": 12, "c": 20},
-    {"nombre": "Panqueque de avena y banana", "tags": ["veg"], "rec": "1 huevo + 3 cdas avena + 1/2 banana", "p": 10, "c": 25}
+    {"nombre": "Yogur con granola y {frutilla}", "tags": ["gf", "db", "ls"], "rec": "200g yogur descremado + 3 cdas granola.", "p": 8, "c": 30},
+    {"nombre": "Tostadas con {palta} y huevo", "tags": ["db", "veg", "ls"], "rec": "1 tostada integral + 1/2 {palta} + 1 huevo.", "p": 12, "c": 20},
+    {"nombre": "Panqueque de avena y banana", "tags": ["db", "veg", "ls"], "rec": "1 huevo + 3 cdas avena + 1/2 banana.", "p": 10, "c": 25},
+    {"nombre": "Bowl de frutas y nueces", "tags": ["gf", "vgn", "db", "ls"], "rec": "{frutilla} picada + 3 nueces mariposa.", "p": 4, "c": 22}
 ]
 
 comidas = [
-    {"nombre": "Pollo al horno con calabaza", "tags": ["gf", "ls"], "rec": "150g pechuga + 200g calabaza", "p": 30, "c": 25},
-    {"nombre": "Wok de vegetales y arroz", "tags": ["vgn"], "rec": "Vegetales + 1 taza arroz cocido", "p": 8, "c": 45},
-    {"nombre": "Pescado con {zapallito}", "tags": ["gf", "db"], "rec": "Filete blanco + 2 {zapallito}", "p": 28, "c": 10}
+    {"nombre": "Pollo al horno con calabaza", "tags": ["gf", "db", "ls", "dl"], "rec": "150g pechuga + 200g calabaza asada.", "p": 30, "c": 25},
+    {"nombre": "Wok de vegetales y arroz integral", "tags": ["vgn", "db", "ls"], "rec": "Vegetales salteados + 1 taza arroz cocido.", "p": 8, "c": 45},
+    {"nombre": "Pescado con {zapallito} grillado", "tags": ["gf", "db", "ls", "dl"], "rec": "Filete blanco + 2 {zapallito} en rodajas.", "p": 28, "c": 10},
+    {"nombre": "Ensalada de quinoa y {choclo}", "tags": ["gf", "vgn", "ls", "db"], "rec": "1 taza quinoa + 1/2 {choclo} + tomate.", "p": 10, "c": 50}
 ]
-
-paises = {
-    "Argentina 🇦🇷": {"zapallito": "Zapallito", "palta": "Palta", "frutilla": "Frutilla"},
-    "México 🇲🇽": {"zapallito": "Calabacita", "palta": "Aguacate", "frutilla": "Fresa"}
-}
 
 # --- FUNCIONES ---
 def seleccionar_plato(lista, filtros, term):
     res = [r for r in lista]
     if "Celíaco" in filtros: res = [r for r in res if "gf" in r["tags"]]
+    if "Hipertenso" in filtros: res = [r for r in res if "ls" in r["tags"]]
     if "Diabético" in filtros: res = [r for r in res if "db" in r["tags"]]
+    if "Vegano" in filtros: res = [r for r in res if "vgn" in r["tags"]]
+    if "Dislipemia" in filtros: res = [r for r in res if "dl" in r["tags"]]
     plato = random.choice(res if res else lista)
     return {"nom": plato["nombre"].format(**term), "rec": plato["rec"].format(**term), "p": plato["p"], "c": plato["c"]}
 
@@ -51,47 +58,62 @@ with st.sidebar:
     st.header("👤 Ficha Paciente")
     sexo = st.radio("Sexo", ["Masculino", "Femenino"])
     talla = st.number_input("Talla (cm)", 50, 250, 175)
-    peso_act = st.number_input("Peso (kg)", 10.0, 200.0, 75.0)
+    peso_act = st.number_input("Peso Actual (kg)", 10.0, 300.0, 75.0)
+    edad = st.number_input("Edad", 1, 110, 30)
+    
     pi = (talla - 100) if sexo == "Masculino" else (talla - 100) * 0.9
-    st.markdown(f'<div class="pi-box"><b>Sugerencia PI:</b> {pi:.1f} kg</div>', unsafe_allow_html=True)
-    peso_obj = st.number_input("Peso Objetivo (kg)", 10.0, 200.0, float(pi))
-    pats = st.multiselect("Patologías", ["Celíaco", "Diabético", "Hipertenso"])
-    pais = st.selectbox("País", list(paises.keys()))
+    st.markdown(f'<div class="pi-box">⚖️ <b>Sugerencia PI:</b> {pi:.1f} kg</div>', unsafe_allow_html=True)
+    peso_obj = st.number_input("Peso para Cálculo (kg)", 10.0, 300.0, float(pi))
+
+    naf_ops = {"Sedentario": 1.2, "Leve": 1.375, "Moderado": 1.55, "Fuerte": 1.725, "Muy Fuerte": 1.9}
+    actividad = st.selectbox("Actividad Física", list(naf_ops.keys()))
+    naf = naf_ops[actividad]
+
+    st.divider()
+    st.header("⚖️ Macros (%)")
+    c1, c2, c3 = st.columns(3)
+    p_carb = c1.number_input("CHO", 0, 100, 50)
+    p_prot = c2.number_input("PRO", 0, 100, 20)
+    p_gras = c3.number_input("LIP", 0, 100, 30)
+    
+    pats = st.multiselect("Patologías:", ["Celíaco", "Hipertenso", "Diabético", "Vegetariano", "Vegano", "Dislipemia"])
+    pais_sel = st.selectbox("País", list(paises.keys()))
 
 # --- CÁLCULOS ---
-imc = peso_act / ((talla/100)**2)
-def obtener_diagnostico(v):
-    if v < 18.5: return "Bajo Peso", "#ffeb3b"
-    if v < 25: return "Normopeso", "#4caf50"
-    if v < 30: return "Sobrepeso", "#ff9800"
-    return "Obesidad", "#f44336"
-txt_imc, col_imc = obtener_diagnostico(imc)
+tmb = (10 * peso_obj) + (6.25 * talla) - (5 * edad) + (5 if sexo == "Masculino" else -161)
+get = tmb * naf
+imc_act = peso_act / ((talla/100)**2)
 
 # --- UI PRINCIPAL ---
 st.title("🍎 Nutri-Flow Pro")
-c_info, c_plan = st.columns([1, 2.2])
+col_info, col_plan = st.columns([1, 2.2])
 
-with c_info:
+with col_info:
     st.markdown(f"""
     <div class="metric-box">
-        <h4>📊 Informe</h4>
-        <b>IMC Actual:</b> {imc:.1f} <br>
-        <span style="background-color:{col_imc}; color:black; padding:2px 6px; border-radius:4px; font-weight:bold;">{txt_imc}</span>
+        <h4>📊 Informe de Consultorio</h4>
+        <b>IMC:</b> {imc_act:.1f}<br>
+        <b>GET:</b> {get:.0f} kcal<br>
         <hr>
-        <b>Peso Ref:</b> {peso_obj} kg
+        <b>Objetivo Diario:</b><br>
+        🍞 {(get * p_carb / 400):.1f}g CHO<br>
+        🍗 {(get * p_prot / 400):.1f}g PRO<br>
+        🥑 {(get * p_gras / 900):.1f}g LIP
     </div>
     """, unsafe_allow_html=True)
 
-with c_plan:
-    if st.button("🚀 GENERAR PLAN SEMANAL"):
-        term = paises[pais]
-        for i in range(7):
-            # Generación de las 4 comidas diarias con llaves cerradas
-            st.session_state[f"d{i}_m0"] = seleccionar_plato(desayunos, pats, term)
-            st.session_state[f"d{i}_m1"] = seleccionar_plato(comidas, pats, term)
-            st.session_state[f"d{i}_m2"] = seleccionar_plato(desayunos, pats, term)
-            st.session_state[f"d{i}_m3"] = seleccionar_plato(comidas, pats, term)
-        st.session_state.listo = True
+with col_plan:
+    if (p_carb + p_prot + p_gras) == 100:
+        if st.button("🚀 GENERAR / RESETEAR PLAN"):
+            term = paises[pais_sel]
+            for i in range(7):
+                st.session_state[f"d{i}_m0"] = seleccionar_plato(desayunos, pats, term)
+                st.session_state[f"d{i}_m1"] = seleccionar_plato(comidas, pats, term)
+                st.session_state[f"d{i}_m2"] = seleccionar_plato(desayunos, pats, term)
+                st.session_state[f"d{i}_m3"] = seleccionar_plato(comidas, pats, term)
+            st.session_state.listo = True
+    else:
+        st.error("Los macros deben sumar 100%")
 
 if st.session_state.get("listo"):
     dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
@@ -104,11 +126,8 @@ if st.session_state.get("listo"):
                 if key in st.session_state:
                     p = st.session_state[key]
                     c1, c2 = st.columns([0.88, 0.12])
-                    c1.markdown(f"<b>{lab}:</b> {p['nom']} <span class='macro-tag'>P:{p['p']}g C:{p['c']}g</span>", unsafe_allow_html=True)
+                    c1.markdown(f"<b>{lab}:</b> {p['nom']} <span class='macro-tag'>P:{p['p']}g C:{p['c']}g</span><br><span class='receta-text'>📖 {p['rec']}</span>", unsafe_allow_html=True)
                     if c2.button("🔄", key=f"btn_{key}"):
-                        pool = desayunos if j in [0,2] else comidas
-                        st.session_state[key] = seleccionar_plato(pool, pats, paises[pais])
+                        st.session_state[key] = seleccionar_plato(desayunos if j in [0,2] else comidas, pats, paises[pais_sel])
                         st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
-else:
-    st.info("Configurá los datos del paciente y hacé clic en 'Generar Plan'.")
