@@ -21,7 +21,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- BASE DE DATOS ---
+# --- BASE DE DATOS --- (Se mantiene igual)
 desayunos = [
     {"nombre": "Yogur con granola y {frutilla}", "tags": ["gf", "db", "ls"], "receta": "200g yogur descremado + 3 cdas granola.", "pro": 8, "cho": 30},
     {"nombre": "Tostadas con {palta} y huevo", "tags": ["db", "veg", "ls"], "receta": "1 tostada integral + 1/2 palta + 1 huevo revuelto.", "pro": 12, "cho": 20},
@@ -59,14 +59,18 @@ with st.sidebar:
     naf = float(actividad_desc.split("(")[1].replace(")", ""))
 
     st.divider()
-    st.header("⚖️ Distribución de Macros (%)")
-    p_carb = st.slider("Carbohidratos", 0, 100, 50)
-    p_prot = st.slider("Proteínas", 0, 100, 20)
-    p_gras = st.slider("Grasas", 0, 100, 30)
+    st.header("⚖️ Macros (%) - Escribí el valor")
+    # CAMBIO: Number input para mayor precisión y comodidad
+    col_c, col_p, col_g = st.columns(3)
+    with col_c: p_carb = st.number_input("CHO", 0, 100, 50)
+    with col_p: p_prot = st.number_input("PRO", 0, 100, 20)
+    with col_g: p_gras = st.number_input("LIP", 0, 100, 30)
     
     total_perc = p_carb + p_prot + p_gras
     if total_perc != 100:
-        st.warning(f"⚠️ Total: {total_perc}% (Debe ser 100%)")
+        st.error(f"Suma: {total_perc}%")
+    else:
+        st.success("Suma: 100%")
 
     st.divider()
     pats = st.multiselect("Patologías:", ["Celíaco", "Hipertenso", "Diabético", "Vegetariano", "Vegano", "Dislipemia"])
@@ -106,8 +110,6 @@ with col_m:
         🥑 LIP: {(get * p_gras / 900):.1f}g
     </div>
     """, unsafe_allow_html=True)
-    
-    
 
 with col_p:
     if total_perc == 100:
@@ -118,7 +120,7 @@ with col_p:
                 st.session_state[f"d_{i}"] = [obtener_menu(desayunos, pats, term), obtener_menu(comidas, pats, term), 
                                               obtener_menu(desayunos, pats, term), obtener_menu(comidas, pats, term)]
     else:
-        st.error("Corregí los macros en la barra lateral para generar el plan.")
+        st.error("La suma de macros debe ser exactamente 100% para generar el plan.")
 
 if "listo" in st.session_state:
     dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
