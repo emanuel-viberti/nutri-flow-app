@@ -11,7 +11,7 @@ st.markdown("""
     [data-testid="stSidebar"] label { color: #1e1e1e !important; font-weight: bold; }
     .day-card { 
         background-color: #ffffff; padding: 15px; border-radius: 12px; 
-        border-left: 8px solid #2e7d32; margin-bottom: 20px; color: #1e1e1e !important;
+        border-left: 8px solid #2e7d32; margin-bottom: 18px; color: #1e1e1e !important;
         box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
     .macro-tag { font-size: 0.75em; background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
@@ -48,20 +48,44 @@ def seleccionar_plato(lista, filtros, term):
 
 # --- SIDEBAR ---
 with st.sidebar:
-    st.header("👤 Datos")
+    st.header("👤 Ficha Paciente")
     sexo = st.radio("Sexo", ["Masculino", "Femenino"])
     talla = st.number_input("Talla (cm)", 50, 250, 175)
     peso_act = st.number_input("Peso (kg)", 10.0, 200.0, 75.0)
     pi = (talla - 100) if sexo == "Masculino" else (talla - 100) * 0.9
-    st.markdown(f'<div class="pi-box">Sugerencia PI: {pi:.1f} kg</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="pi-box"><b>Sugerencia PI:</b> {pi:.1f} kg</div>', unsafe_allow_html=True)
     peso_obj = st.number_input("Peso Objetivo (kg)", 10.0, 200.0, float(pi))
     pats = st.multiselect("Patologías", ["Celíaco", "Diabético", "Hipertenso"])
     pais = st.selectbox("País", list(paises.keys()))
 
-# --- CÁLCULOS ---
+# --- LÓGICA MÉDICA (IMC) ---
 imc = peso_act / ((talla/100)**2)
-def diag_imc(v):
+def obtener_diagnostico(v):
     if v < 18.5: return "Bajo Peso", "#ffeb3b"
     if v < 25: return "Normopeso", "#4caf50"
     if v < 30: return "Sobrepeso", "#ff9800"
-    return "Obesidad", "#f4433
+    return "Obesidad", "#f44336"
+
+txt_imc, col_imc = obtener_diagnostico(imc)
+
+# --- UI PRINCIPAL ---
+st.title("🍎 Nutri-Flow Pro")
+c_info, c_plan = st.columns([1, 2.2])
+
+with c_info:
+    st.markdown(f"""
+    <div class="metric-box">
+        <h4>📊 Informe</h4>
+        <b>IMC Actual:</b> {imc:.1f} <br>
+        <span style="background-color:{col_imc}; color:black; padding:2px 6px; border-radius:4px; font-weight:bold;">{txt_imc}</span>
+        <hr>
+        <b>Peso Ref:</b> {peso_obj} kg
+    </div>
+    """, unsafe_allow_html=True)
+
+with c_plan:
+    if st.button("🚀 GENERAR PLAN SEMANAL"):
+        term = paises[pais]
+        for i in range(7):
+            st.session_state[f"d{i}_m0"] = seleccionar_plato(desayunos, pats, term)
+            st.session_state[f"d{i}_m1
