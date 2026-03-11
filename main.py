@@ -10,17 +10,12 @@ paises = {
     "España 🇪🇸": {"zapallito": "Calabacín", "palta": "Aguacate", "choclo": "Maíz", "frutilla": "Fresa", "carne": "Ternera", "legumbre": "Alubias"}
 }
 
-# (Mantené tus platos aquí - asegurate que tengan 'l' para lípidos)
+# Base de datos (asegurate de tener tus 100 platos aquí con 'l' para lípidos)
 desayunos = [{"nombre": "Yogur con granola y {frutilla}", "kcal": 250, "p": 15, "c": 30, "l": 8, "tags": ["gf", "db"]}]
-comidas = [{"nombre": "Pollo con calabaza", "kcal": 450, "p": 35, "c": 25, "l": 12, "tags": ["gf", "db", "ls"]}]
+comidas = [{"nombre": "Pollo con calabaza", "kcal": 450, "p": 35, "c": 25, "l": 12, "tags": ["gf", "db", "ls"]},
+           {"nombre": "Wok de tofu y arroz", "kcal": 500, "p": 25, "c": 60, "l": 15, "tags": ["vgn", "db"]}]
 
-# --- LÓGICA CLÍNICA ---
-def diagnosticar_imc(imc_val):
-    if imc_val < 18.5: return "Bajo Peso ⚠️", "#ffeb3b" # Amarillo
-    if 18.5 <= imc_val < 25: return "Normopeso ✅", "#4caf50" # Verde
-    if 25 <= imc_val < 30: return "Sobrepeso 🟠", "#ff9800" # Naranja
-    return "Obesidad 🔴", "#f44336" # Rojo
-
+# --- LÓGICA DE PRECISIÓN ---
 def ajustar_porcion(plato, kcal_obj):
     factor = round((kcal_obj / plato["kcal"]) * 4) / 4
     if factor == 0: factor = 0.25
@@ -28,94 +23,104 @@ def ajustar_porcion(plato, kcal_obj):
         "nom": plato["nombre"],
         "kcal": plato["kcal"] * factor,
         "p": plato["p"] * factor, "c": plato["c"] * factor, "l": plato["l"] * factor,
-        "factor": factor
+        "factor": factor, "tags": plato["tags"]
     }
+
+def validar_5_porciento(dia, get_obj, p_obj, c_obj, l_obj):
+    tk = sum(x["kcal"] for x in dia)
+    tp = sum(x["p"] for x in dia)
+    tc = sum(x["c"] for x in dia)
+    tl = sum(x["l"] for x in dia)
+    
+    def check(real, obj):
+        if obj == 0: return True
+        return abs(real - obj) / obj <= 0.05
+
+    return all([check(tk, get_obj), check(tp, p_obj), check(tc, c_obj), check(tl, l_obj)]), (tk, tp, tc, tl)
 
 # --- SIDEBAR ---
 with st.sidebar:
-    st.header("👤 Ficha del Paciente")
+    st.header("👤 Ficha")
     sexo = st.radio("Sexo", ["Masculino", "Femenino"])
     talla = st.number_input("Talla (cm)", 100, 250, 175)
     peso_act = st.number_input("Peso Actual (kg)", 30.0, 200.0, 80.0)
-    edad = st.number_input("Edad", 1, 110, 30)
-    
-    pi_sug = float((talla - 100) if sexo == "Masculino" else (talla - 100) * 0.9)
-    pi_real = st.number_input("Peso Objetivo (kg)", 30.0, 200.0, value=pi_sug)
-    
-    af_opts = {"Sedentario": 1.2, "Leve": 1.375, "Moderado": 1.55, "Fuerte": 1.725, "Muy Fuerte": 1.9}
-    af_label = st.selectbox("Actividad Física", list(af_opts.keys()))
-    af_val = af_opts[af_label]
+    pi_real = st.number_input("Peso Objetivo (kg)", 30.0, 200.0, value=float((talla-100) if sexo=="Masculino" else (talla-100)*0.9))
+    af_val = st.selectbox("AF", [1.2, 1.375, 1.55, 1.725, 1.9], format_func=lambda x: {1.2:"Sedentario", 1.55:"Moderado", 1.9:"Intenso"}.get(x))
     
     st.divider()
-    st.header("⚖️ Prescripción de Macros")
-    p_cho = st.number_input("% CHO", 0, 100, 50)
-    p_pro = st.number_input("% PRO", 0, 100, 20)
-    p_lip = st.number_input("% LIP", 0, 100, 30)
-    
+    st.header("⚖️ Macros")
+    p_cho, p_pro, p_lip = st.number_input("% CHO", 0, 100, 50), st.number_input("% PRO", 0, 100, 20), st.number_input("% LIP", 0, 100, 30)
     pats = st.multiselect("Patologías", ["Celíaco", "Hipertenso", "Diabético", "Vegano", "Dislipemia"])
     pais = st.selectbox("País", list(paises.keys()))
 
-# --- CÁLCULOS TÉCNICOS ---
-tmb = (10 * pi_real) + (6.25 * talla) - (5 * edad) + (5 if sexo == "Masculino" else -161)
+# --- CÁLCULOS ---
+tmb = (10 * pi_real) + (6.25 * talla) - (5 * 30) + (5 if sexo == "Masculino" else -161)
 get = tmb * af_val
-imc = peso_act / ((talla/100)**2)
-diag, color_diag = diagnosticar_imc(imc)
-
-# Metas diarias
 obj_p, obj_c, obj_l = (get*p_pro/400), (get*p_cho/400), (get*p_lip/900)
+imc = peso_act / ((talla/100)**2)
+def get_diag(i):
+    if i < 18.5: return "Bajo Peso", "#ffeb3b"
+    if i < 25: return "Normopeso", "#4caf50"
+    return "Sobrepeso/Obeso", "#f44336"
+diag, color_diag = get_diag(imc)
 
-# --- UI PRINCIPAL ---
-st.title("🍎 Nutri-Flow Pro")
+# --- UI ---
 c_info, c_plan = st.columns([1, 2.5])
-
 with c_info:
-    # Informe técnico con CSS forzado para legibilidad
     st.markdown(f"""
-    <div style="background-color:#262730; padding:20px; border-radius:12px; border:1px solid #464b5d; color:white">
-        <h3 style="color:#00d4ff; margin-top:0">📊 Informe Técnico</h3>
-        <p style="margin-bottom:5px"><b>IMC Actual:</b> {imc:.1f}</p>
-        <div style="background-color:{color_diag}; color:black; padding:4px 10px; border-radius:6px; font-weight:bold; display:inline-block; margin-bottom:15px">
-            {diag}
-        </div>
-        <hr style="border:0.5px solid #464b5d">
-        <p style="font-size:1.1em">🔥 <b>GET:</b> {get:.0f} kcal</p>
-        <p style="margin-bottom:2px">🍗 <b>PRO:</b> {obj_p:.1f}g ({p_pro}%)</p>
-        <p style="margin-bottom:2px">🍞 <b>CHO:</b> {obj_c:.1f}g ({p_cho}%)</p>
-        <p style="margin-bottom:2px">🥑 <b>LIP:</b> {obj_l:.1f}g ({p_lip}%)</p>
+    <div style="background-color:#262730; padding:15px; border-radius:10px; color:white; border:1px solid #464b5d">
+        <h4 style="color:#00d4ff; margin:0">📊 Informe Técnico</h4>
+        <b>IMC:</b> {imc:.1f} <span style="color:{color_diag}">({diag})</span><hr>
+        🔥 <b>GET:</b> {get:.0f} kcal<br>
+        🍗 <b>P:</b> {obj_p:.1f}g | 🍞 <b>C:</b> {obj_c:.1f}g | 🥑 <b>G:</b> {obj_l:.1f}g
     </div>
     """, unsafe_allow_html=True)
 
-if st.button("🚀 GENERAR PLAN VALIDADO (Margen 5%)"):
-    term = paises[pais]
-    # Lógica de validación de patologías y 5% integrada
-    mapa_tags = {"Celíaco": "gf", "Hipertenso": "ls", "Diabético": "db", "Vegano": "vgn", "Dislipemia": "dl"}
-    tags_req = [mapa_tags[p] for p in pats]
-    
-    d_aptos = [p for p in desayunos if all(t in p["tags"] for t in tags_req)]
-    c_aptos = [p for p in comidas if all(t in p["tags"] for t in tags_req)]
-    
+# --- GENERACIÓN ---
+mapa_tags = {"Celíaco": "gf", "Hipertenso": "ls", "Diabético": "db", "Vegano": "vgn", "Dislipemia": "dl"}
+tags_req = [mapa_tags[p] for p in pats]
+
+def buscar_plato_seguro(lista, kcal_target):
+    aptos = [p for p in lista if all(t in p["tags"] for t in tags_req)]
+    return ajustar_porcion(random.choice(aptos if aptos else lista), kcal_target)
+
+if st.button("🚀 GENERAR PLAN NUTRICIONAL"):
     for i in range(7):
-        for _ in range(50):
-            dia_temp = []
-            dist = [get*0.20, get*0.35, get*0.15, get*0.30]
-            for j in range(4):
-                lista = d_aptos if j in [0, 2] else c_aptos
-                dia_temp.append(ajustar_porcion(random.choice(lista if lista else (desayunos if j in [0,2] else comidas)), dist[j]))
-            
-            tk = sum(x["kcal"] for x in dia_temp)
-            if abs(tk - get)/get <= 0.05:
+        for _ in range(100): # Fuerza el 5%
+            dia_temp = [
+                buscar_plato_seguro(desayunos, get*0.20),
+                buscar_plato_seguro(comidas, get*0.35),
+                buscar_plato_seguro(desayunos, get*0.15),
+                buscar_plato_seguro(comidas, get*0.30)
+            ]
+            ok, tot = validar_5_porciento(dia_temp, get, obj_p, obj_c, obj_l)
+            if ok:
                 st.session_state[f"dia_{i}"] = dia_temp
-                st.session_state[f"tot_{i}"] = (tk, sum(x["p"] for x in dia_temp), sum(x["c"] for x in dia_temp), sum(x["l"] for x in dia_temp))
+                st.session_state[f"tot_{i}"] = tot
                 break
     st.session_state.listo = True
 
+# --- RENDER Y BOTONES DE INTERCAMBIO ---
 if st.session_state.get("listo"):
     for i, d in enumerate(["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]):
         with st.expander(f"📅 {d}", expanded=True):
             dia_data = st.session_state[f"dia_{i}"]
             tk, tp, tc, tl = st.session_state[f"tot_{i}"]
-            for j, lab in enumerate(["☕ Des", "☀️ Alm", "🍪 Mer", "🌙 Cen"]):
-                p = dia_data[j]
-                st.write(f"**{lab}:** {p['nom'].format(**paises[pais])} (x{p['factor']})")
             
-            st.markdown(f"<p style='color:#28a745; font-weight:bold'>Total Día: {tk:.0f} kcal | P: {tp:.1f}g | C: {tc:.1f}g | G: {tl:.1f}g</p>", unsafe_allow_html=True)
+            for j, lab in enumerate(["☕ Des", "☀️ Alm", "🍪 Mer", "🌙 Cen"]):
+                col_t, col_b = st.columns([0.85, 0.15])
+                p = dia_data[j]
+                with col_t:
+                    st.write(f"**{lab}:** {p['nom'].format(**paises[pais])} (x{p['factor']})")
+                    st.caption(f"{p['kcal']:.0f} kcal | P: {p['p']:.1f}g | C: {p['c']:.1f}g | G: {p['l']:.1f}g")
+                with col_b:
+                    if st.button("🔄", key=f"sw_{i}_{j}"):
+                        lista = desayunos if j in [0, 2] else comidas
+                        st.session_state[f"dia_{i}"][j] = buscar_plato_seguro(lista, (get * [0.20, 0.35, 0.15, 0.30][j]))
+                        # Recalcular totales tras intercambio
+                        nuevo_dia = st.session_state[f"dia_{i}"]
+                        st.session_state[f"tot_{i}"] = (sum(x["kcal"] for x in nuevo_dia), sum(x["p"] for x in nuevo_dia), sum(x["c"] for x in nuevo_dia), sum(x["l"] for x in nuevo_dia))
+                        st.rerun()
+            
+            st.markdown(f"---")
+            st.markdown(f"**Total Real:** {tk:.0f} kcal | P: {tp:.1f}g | C: {tc:.1f}g | G: {tl:.1f}g")
