@@ -259,11 +259,14 @@ if st.session_state.get("listo"):
                 st.write(f"**{lab}:** {p['nom'].format(**paises[pais])} (x{p['factor']})")
                 st.caption(f"{p['kcal']:.0f} kcal | P: {p['p']:.1f}g | C: {p['c']:.1f}g")
             
-            # Verificación visual de cumplimiento
+      # --- VERIFICACIÓN VISUAL (Final del bucle de días) ---
             err = abs(tk - get) / get
             color = "#28a745" if err <= 0.05 else "#dc3545"
             st.markdown(f"""
             <div style="background:{color}; color:white; padding:5px 10px; border-radius:5px; margin-top:10px">
-                <b>Total Real: {tk:.0f} kcal</b> (Dif: {((tk/get)-1)*100:.1f}%) | P: {tp:.1f}g | C: {tc:.1f}g
+                <b>Total Real: {tk:.0f} kcal</b> (Dif: {((tk/get)-1)*100:.1f}%)
             </div>
             """, unsafe_allow_html=True)
+
+# El archivo debe terminar aquí. 
+# Asegúrate de que no haya un "import streamlit" huérfano después de esta línea.
