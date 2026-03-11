@@ -22,7 +22,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- BASE DE DATOS ---
+# --- BASE DE DATOS (Recetas + Macros) ---
 desayunos = [
     {"nombre": "Yogur con granola y {frutilla}", "tags": ["gf", "db", "ls"], "receta": "200g yogur descremado + 3 cdas granola.", "pro": 8, "cho": 30},
     {"nombre": "Tostadas con {palta} y huevo", "tags": ["db", "veg", "ls"], "receta": "1 tostada integral + 1/2 palta + 1 huevo revuelto.", "pro": 12, "cho": 20},
@@ -53,12 +53,15 @@ with st.sidebar:
     peso_actual = st.number_input("Peso Actual (kg)", 10.0, 300.0, 75.0)
     talla = st.number_input("Talla (cm)", 50, 250, 175)
     
-    # NUEVA SUGERENCIA: Fórmula de Broca (Talla - 100)
-    pi_broca = talla - 100
+    # AJUSTE BROCA-ASTRUA: Hombre (T-100), Mujer ((T-100)*0.9)
+    if sexo == "Masculino":
+        pi_sugerido = talla - 100
+    else:
+        pi_sugerido = (talla - 100) * 0.9
     
-    st.markdown(f"""<div class="pi-box">⚖️ <b>Sugerencia PI (Broca):</b> {pi_broca} kg</div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="pi-box">⚖️ <b>Sugerencia PI (Broca-Astrua):</b> {pi_sugerido:.1f} kg</div>""", unsafe_allow_html=True)
     
-    peso_objetivo = st.number_input("Peso para el Cálculo (kg)", 10.0, 300.0, float(pi_broca))
+    peso_objetivo = st.number_input("Peso para el Cálculo (kg)", 10.0, 300.0, float(pi_sugerido))
 
     actividad_desc = st.selectbox("Actividad Física", [
         "Sedentario (1.2)", "Leve (1.375)", 
@@ -78,7 +81,6 @@ with st.sidebar:
     pais = st.selectbox("País", list(paises.keys()))
 
 # --- LÓGICA MÉDICA ---
-# Cálculo basado en PESO PARA EL CÁLCULO
 tmb = (10 * peso_objetivo) + (6.25 * talla) - (5 * edad) + (5 if sexo == "Masculino" else -161)
 get = tmb * naf
 imc_actual = peso_actual / ((talla/100)**2)
@@ -110,3 +112,33 @@ with col_m:
         🍞 CHO: {(get * p_carb / 400):.1f}g | 🍗 PRO: {(get * p_prot / 400):.1f}g | 🥑 LIP: {(get * p_gras / 900):.1f}g
     </div>
     """, unsafe_allow_html=True)
+
+if (p_carb + p_prot + p_gras) == 100:
+    if st.button("🚀 GENERAR PLAN SEMANAL"):
+        st.session_state.listo = True
+        term = paises[pais]
+        for i in range(7):
+            st.session_state[f"d_{i}"] = [obtener_menu(desayunos, pats, term), obtener_menu(comidas, pats, term), 
+                                          obtener_menu(desayunos, pats, term), obtener_menu(comidas, pats, term)]
+else:
+    st.error("La suma de macros debe ser 100%.")
+
+if "listo" in st.session_state:
+    dias_n = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    term = paises[pais]
+    for i, d_nom in enumerate(dias_n):
+        with st.container():
+            c1, c2 = st.columns([5, 1])
+            with c1:
+                st.markdown(f'<div class="day-card"><div style="color:#2e7d32; font-weight:bold; font-size:1.2em; border-bottom:1px solid #eee; margin-bottom:10px;">📅 {d_nom}</div>', unsafe_allow_html=True)
+                labels = ["☕ Desayuno", "☀️ Almuerzo", "🍪 Merienda", "🌙 Cena"]
+                for j, lab in enumerate(labels):
+                    item = st.session_state[f"d_{i}"][j]
+                    st.markdown(f'<div class="meal-box"><b>{lab}:</b> {item["nom"]} <span class="macro-tag">P: {item["p"]}g | C: {item["c"]}g</span><span class="receta-text">📖 {item["rec"]}</span></div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+            with c2:
+                st.write(" ")
+                if st.button("🔄", key=f"re_{i}"):
+                    st.session_state[f"d_{i}"] = [obtener_menu(desayunos, pats, term), obtener_menu(comidas, pats, term), 
+                                                  obtener_menu(desayunos, pats, term), obtener_menu(comidas, pats, term)]
+                    st.rerun()
