@@ -17,7 +17,8 @@ st.markdown("""
     .meal-box { margin-bottom: 12px; padding: 8px; border-bottom: 1px solid #eee; }
     .receta-text { font-size: 0.85em; color: #555; font-style: italic; display: block; margin-top: 2px; }
     .macro-tag { font-size: 0.75em; background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; }
-    .metric-box { background: #f0f2f6; padding: 15px; border-radius: 10px; color: #333; border: 1px solid #ccc; }
+    .metric-box { background: #f0f2f6; padding: 15px; border-radius: 10px; color: #333; border: 2px solid #ccc; margin-bottom: 10px;}
+    .pi-box { background: #e3f2fd; border: 1px solid #2196f3; padding: 10px; border-radius: 8px; color: #0d47a1; margin-bottom: 10px;}
     </style>
     """, unsafe_allow_html=True)
 
@@ -43,43 +44,44 @@ paises = {
     "España 🇪🇸": {"zapallito": "Calabacín", "palta": "Aguacate", "choclo": "Maíz", "frutilla": "Fresa"}
 }
 
-# --- SIDEBAR ---
+# --- SIDEBAR: FICHA ANTROPOMÉTRICA ---
 with st.sidebar:
     st.header("👤 Ficha Paciente")
     nombre = st.text_input("Nombre", "Emanuel")
     sexo = st.radio("Sexo", ["Masculino", "Femenino"])
-    edad = st.number_input("Edad", 18, 100, 30)
-    peso = st.number_input("Peso (kg)", 75.0)
-    talla = st.number_input("Talla (cm)", 175)
+    edad = st.number_input("Edad", 1, 110, 30)
+    peso_actual = st.number_input("Peso Actual (kg)", 10.0, 300.0, 75.0)
+    talla = st.number_input("Talla (cm)", 50, 250, 175)
     
-    actividad_desc = st.selectbox("Nivel de Actividad Física", [
+    # Sugerencia de Peso Ideal (Fórmula de Lorentz simplificada)
+    pi_sugerido = (talla - 100) - ((talla - 150) / (4 if sexo == "Masculino" else 2))
+    
+    st.markdown(f"""<div class="pi-box">💡 <b>Sugerencia PI:</b> {pi_sugerido:.1f} kg</div>""", unsafe_allow_html=True)
+    
+    peso_objetivo = st.number_input("Peso Objetivo (para cálculo kcal)", 10.0, 300.0, float(pi_sugerido))
+
+    actividad_desc = st.selectbox("Actividad Física", [
         "Sedentario (1.2)", "Leve (1.375)", 
         "Moderado (1.55)", "Fuerte (1.725)", "Muy Fuerte (1.9)"
     ])
     naf = float(actividad_desc.split("(")[1].replace(")", ""))
 
     st.divider()
-    st.header("⚖️ Macros (%) - Escribí el valor")
-    # CAMBIO: Number input para mayor precisión y comodidad
+    st.header("⚖️ Macros (%)")
     col_c, col_p, col_g = st.columns(3)
     with col_c: p_carb = st.number_input("CHO", 0, 100, 50)
     with col_p: p_prot = st.number_input("PRO", 0, 100, 20)
     with col_g: p_gras = st.number_input("LIP", 0, 100, 30)
     
-    total_perc = p_carb + p_prot + p_gras
-    if total_perc != 100:
-        st.error(f"Suma: {total_perc}%")
-    else:
-        st.success("Suma: 100%")
-
     st.divider()
     pats = st.multiselect("Patologías:", ["Celíaco", "Hipertenso", "Diabético", "Vegetariano", "Vegano", "Dislipemia"])
     pais = st.selectbox("País", list(paises.keys()))
 
 # --- LÓGICA MÉDICA ---
-tmb = (10 * peso) + (6.25 * talla) - (5 * edad) + (5 if sexo == "Masculino" else -161)
+# Cálculo basado en PESO OBJETIVO
+tmb = (10 * peso_objetivo) + (6.25 * talla) - (5 * edad) + (5 if sexo == "Masculino" else -161)
 get = tmb * naf
-imc = peso / ((talla/100)**2)
+imc_actual = peso_actual / ((talla/100)**2)
 
 def obtener_menu(lista, filtros, term):
     res = lista.copy()
@@ -88,7 +90,6 @@ def obtener_menu(lista, filtros, term):
     if "Diabético" in filtros: res = [r for r in res if "db" in r["tags"]]
     if "Vegano" in filtros: res = [r for r in res if "vgn" in r["tags"]]
     if "Dislipemia" in filtros: res = [r for r in res if "dl" in r["tags"]]
-    
     plato = random.choice(res if res else lista)
     return {"nom": plato["nombre"].format(**term), "rec": plato["receta"].format(**term), "p": plato.get("pro", 0), "c": plato.get("cho", 0)}
 
@@ -100,11 +101,12 @@ col_m, col_p = st.columns([1, 2])
 with col_m:
     st.markdown(f"""
     <div class="metric-box">
-        <h4>📊 Informe Metabólico</h4>
-        <b>IMC:</b> {imc:.1f}<br>
-        <b>GET:</b> {get:.0f} kcal/día<br>
+        <h4>📊 Informe de Consultorio</h4>
+        <b>IMC Actual:</b> {imc_actual:.1f}<br>
+        <b>Peso Objetivo:</b> {peso_objetivo:.1f} kg<br>
+        <b>GET (basado en Objetivo):</b> {get:.0f} kcal/día<br>
         <hr>
-        <b>Gramos Calculados:</b><br>
+        <b>Distribución:</b><br>
         🍞 CHO: {(get * p_carb / 400):.1f}g<br>
         🍗 PRO: {(get * p_prot / 400):.1f}g<br>
         🥑 LIP: {(get * p_gras / 900):.1f}g
@@ -112,15 +114,15 @@ with col_m:
     """, unsafe_allow_html=True)
 
 with col_p:
-    if total_perc == 100:
-        if st.button("🚀 GENERAR / REFRESCAR PLAN SEMANAL"):
+    if (p_carb + p_prot + p_gras) == 100:
+        if st.button("🚀 GENERAR PLAN SEMANAL"):
             st.session_state.listo = True
             term = paises[pais]
             for i in range(7):
                 st.session_state[f"d_{i}"] = [obtener_menu(desayunos, pats, term), obtener_menu(comidas, pats, term), 
                                               obtener_menu(desayunos, pats, term), obtener_menu(comidas, pats, term)]
     else:
-        st.error("La suma de macros debe ser exactamente 100% para generar el plan.")
+        st.error("La suma de macros debe ser 100%.")
 
 if "listo" in st.session_state:
     dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
