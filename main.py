@@ -3,7 +3,7 @@ import random
 
 st.set_page_config(page_title="Nutri-Flow Pro | Gestión Clínica", page_icon="🍎", layout="wide")
 
-# --- CSS PERSONALIZADO ---
+# --- CSS PROFESIONAL ---
 st.markdown("""
     <style>
     h1, h2, h3 { color: #FFFFFF !important; }
@@ -72,14 +72,59 @@ with st.sidebar:
     edad = st.number_input("Edad", 1, 110, 30)
     
     pi_sugerido = (talla - 100) if sexo == "Masculino" else (talla - 100) * 0.9
-    st.markdown(f"""<div class="pi-box">⚖️ <b>Sugerencia PI:</b> {pi_sugerido:.1f} kg</div>""", unsafe_allow_html=True)
+    st.markdown(f'<div class="pi-box">⚖️ <b>Sugerencia PI:</b> {pi_sugerido:.1f} kg</div>', unsafe_allow_html=True)
     peso_objetivo = st.number_input("Peso para el Cálculo (kg)", 10.0, 300.0, float(pi_sugerido))
 
-    naf_opciones = {"Sedentario": 1.2, "Leve": 1.375, "Moderado": 1.55, "Fuerte": 1.725, "Muy Fuerte": 1.9}
-    actividad = st.selectbox("Actividad Física", list(naf_opciones.keys()))
-    naf = naf_opciones[actividad]
+    naf_ops = {"Sedentario": 1.2, "Leve": 1.375, "Moderado": 1.55, "Fuerte": 1.725, "Muy Fuerte": 1.9}
+    actividad = st.selectbox("Actividad Física", list(naf_ops.keys()))
+    naf = naf_ops[actividad]
 
     st.divider()
     st.header("⚖️ Macros (%)")
     c1, c2, c3 = st.columns(3)
-    p_carb = c1.number_input("CHO", 0,
+    p_carb = c1.number_input("CHO", 0, 100, 50)
+    p_prot = c2.number_input("PRO", 0, 100, 20)
+    p_gras = c3.number_input("LIP", 0, 100, 30)
+    
+    pats = st.multiselect("Patologías:", ["Celíaco", "Hipertenso", "Diabético", "Vegetariano", "Vegano", "Dislipemia"])
+    pais_sel = st.selectbox("País", list(paises.keys()))
+
+# --- CÁLCULOS ---
+tmb = (10 * peso_objetivo) + (6.25 * talla) - (5 * edad) + (5 if sexo == "Masculino" else -161)
+get = tmb * naf
+imc_act = peso_actual / ((talla/100)**2)
+diag_t, diag_c = obtener_diagnostico_imc(imc_act)
+
+# --- MAIN UI ---
+st.title("🍎 Nutri-Flow Pro")
+col_info, col_plan = st.columns([1, 2.2])
+
+with col_info:
+    st.markdown(f"""
+    <div class="metric-box">
+        <h4>📊 Informe de Consultorio</h4>
+        <b>IMC:</b> {imc_act:.1f} <small style="color:{diag_c}; font-weight:bold;">[{diag_t}]</small><br>
+        <b>Peso Ref:</b> {peso_objetivo:.1f} kg | <b>GET:</b> {get:.0f} kcal<br>
+        <hr>
+        <b>Objetivo Diario:</b><br>
+        🍞 {(get * p_carb / 400):.1f}g CHO | 🍗 {(get * p_prot / 400):.1f}g PRO<br>
+        🥑 {(get * p_gras / 900):.1f}g LIP
+    </div>
+    """, unsafe_allow_html=True)
+
+with col_plan:
+    if (p_carb + p_prot + p_gras) == 100:
+        if st.button("🚀 GENERAR / RESETEAR TODO EL PLAN"):
+            term = paises[pais_sel]
+            for i in range(7):
+                st.session_state[f"d{i}_m0"] = seleccionar_plato(desayunos, pats, term)
+                st.session_state[f"d{i}_m1"] = seleccionar_plato(comidas, pats, term)
+                st.session_state[f"d{i}_m2"] = seleccionar_plato(desayunos, pats, term)
+                st.session_state[f"d{i}_m3"] = seleccionar_plato(comidas, pats, term)
+            st.session_state.listo = True
+    else:
+        st.error("Los macros deben sumar 100%")
+
+if st.session_state.get("listo"):
+    dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    labels = ["☕ Desayuno", "☀️ Almuerzo", "🍪 Merienda
