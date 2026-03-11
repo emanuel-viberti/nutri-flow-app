@@ -21,25 +21,34 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- BASE DE DATOS ---
+# --- BASE DE DATOS EXTENDIDA ---
 paises = {
-    "Argentina 🇦🇷": {"zapallito": "Zapallito", "palta": "Palta", "choclo": "Choclo", "frutilla": "Frutilla"},
-    "México 🇲🇽": {"zapallito": "Calabacita", "palta": "Aguacate", "choclo": "Elote", "frutilla": "Fresa"},
-    "España 🇪🇸": {"zapallito": "Calabacín", "palta": "Aguacate", "choclo": "Maíz", "frutilla": "Fresa"}
+    "Argentina 🇦🇷": {"zapallito": "Zapallito", "palta": "Palta", "choclo": "Choclo", "frutilla": "Frutilla", "carne": "Peceto"},
+    "México 🇲🇽": {"zapallito": "Calabacita", "palta": "Aguacate", "choclo": "Elote", "frutilla": "Fresa", "carne": "Bistec"},
+    "España 🇪🇸": {"zapallito": "Calabacín", "palta": "Aguacate", "choclo": "Maíz", "frutilla": "Fresa", "carne": "Ternera"}
 }
 
 desayunos = [
     {"nombre": "Yogur con granola y {frutilla}", "tags": ["gf", "db", "ls"], "rec": "200g yogur descremado + 3 cdas granola.", "p": 8, "c": 30},
     {"nombre": "Tostadas con {palta} y huevo", "tags": ["db", "veg", "ls"], "rec": "1 tostada integral + 1/2 {palta} + 1 huevo.", "p": 12, "c": 20},
     {"nombre": "Panqueque de avena y banana", "tags": ["db", "veg", "ls"], "rec": "1 huevo + 3 cdas avena + 1/2 banana.", "p": 10, "c": 25},
-    {"nombre": "Bowl de frutas y nueces", "tags": ["gf", "vgn", "db", "ls"], "rec": "{frutilla} picada + 3 nueces mariposa.", "p": 4, "c": 22}
+    {"nombre": "Bowl de frutas y nueces", "tags": ["gf", "vgn", "db", "ls"], "rec": "{frutilla} picada + 3 nueces mariposa.", "p": 4, "c": 22},
+    {"nombre": "Omelette de claras y espinaca", "tags": ["gf", "db", "ls", "dl"], "rec": "3 claras + 1 puñado de espinaca.", "p": 15, "c": 2},
+    {"nombre": "Pudin de chía y leche de coco", "tags": ["gf", "vgn", "db"], "rec": "2 cdas chía en 1/2 taza leche de coco.", "p": 5, "c": 12},
+    {"nombre": "Tostón de pan de centeno con queso", "tags": ["db", "ls"], "rec": "1 feta de pan centeno + queso untable descremado.", "p": 7, "c": 18}
 ]
 
 comidas = [
     {"nombre": "Pollo al horno con calabaza", "tags": ["gf", "db", "ls", "dl"], "rec": "150g pechuga + 200g calabaza asada.", "p": 30, "c": 25},
     {"nombre": "Wok de vegetales y arroz integral", "tags": ["vgn", "db", "ls"], "rec": "Vegetales salteados + 1 taza arroz cocido.", "p": 8, "c": 45},
     {"nombre": "Pescado con {zapallito} grillado", "tags": ["gf", "db", "ls", "dl"], "rec": "Filete blanco + 2 {zapallito} en rodajas.", "p": 28, "c": 10},
-    {"nombre": "Ensalada de quinoa y {choclo}", "tags": ["gf", "vgn", "ls", "db"], "rec": "1 taza quinoa + 1/2 {choclo} + tomate.", "p": 10, "c": 50}
+    {"nombre": "Ensalada de quinoa y {choclo}", "tags": ["gf", "vgn", "ls", "db"], "rec": "1 taza quinoa + 1/2 {choclo} + tomate.", "p": 10, "c": 50},
+    {"nombre": "Lentejas con vegetales", "tags": ["vgn", "gf", "db", "ls"], "rec": "1 taza lentejas cocidas + morrón y cebolla.", "p": 14, "c": 40},
+    {"nombre": "{carne} a la plancha con puré", "tags": ["gf", "ls", "dl"], "rec": "150g {carne} magra + 150g puré mixto.", "p": 32, "c": 22},
+    {"nombre": "Tarta de {zapallito} (sin masa)", "tags": ["gf", "veg", "db", "ls"], "rec": "3 {zapallito} + 2 huevos + queso magro.", "p": 18, "c": 12},
+    {"nombre": "Wrap de pollo y hojas verdes", "tags": ["db", "ls"], "rec": "Tortilla integral + 100g pollo + lechuga.", "p": 22, "c": 28},
+    {"nombre": "Garbanzos con espinaca y pimentón", "tags": ["vgn", "gf", "db"], "rec": "1 taza garbanzos + espinaca salteada.", "p": 12, "c": 38},
+    {"nombre": "Risotto de hongos y cebada", "tags": ["veg", "db", "ls"], "rec": "1 taza cebada perlada + mix de hongos.", "p": 9, "c": 42}
 ]
 
 # --- FUNCIONES ---
@@ -50,8 +59,17 @@ def seleccionar_plato(lista, filtros, term):
     if "Diabético" in filtros: res = [r for r in res if "db" in r["tags"]]
     if "Vegano" in filtros: res = [r for r in res if "vgn" in r["tags"]]
     if "Dislipemia" in filtros: res = [r for r in res if "dl" in r["tags"]]
-    plato = random.choice(res if res else lista)
-    return {"nom": plato["nombre"].format(**term), "rec": plato["rec"].format(**term), "p": plato["p"], "c": plato["c"]}
+    
+    # Si los filtros son muy estrictos y vacían la lista, volvemos a la lista original para no romper la app
+    final_pool = res if len(res) > 0 else lista
+    plato = random.choice(final_pool)
+    
+    return {
+        "nom": plato["nombre"].format(**term), 
+        "rec": plato["rec"].format(**term), 
+        "p": plato["p"], 
+        "c": plato["c"]
+    }
 
 # --- SIDEBAR ---
 with st.sidebar:
@@ -104,7 +122,7 @@ with col_info:
 
 with col_plan:
     if (p_carb + p_prot + p_gras) == 100:
-        if st.button("🚀 GENERAR / RESETEAR PLAN"):
+        if st.button("🚀 GENERAR / RESETEAR PLAN SEMANAL"):
             term = paises[pais_sel]
             for i in range(7):
                 st.session_state[f"d{i}_m0"] = seleccionar_plato(desayunos, pats, term)
@@ -126,8 +144,11 @@ if st.session_state.get("listo"):
                 if key in st.session_state:
                     p = st.session_state[key]
                     c1, c2 = st.columns([0.88, 0.12])
-                    c1.markdown(f"<b>{lab}:</b> {p['nom']} <span class='macro-tag'>P:{p['p']}g C:{p['c']}g</span><br><span class='receta-text'>📖 {p['rec']}</span>", unsafe_allow_html=True)
-                    if c2.button("🔄", key=f"btn_{key}"):
-                        st.session_state[key] = seleccionar_plato(desayunos if j in [0,2] else comidas, pats, paises[pais_sel])
-                        st.rerun()
+                    with c1:
+                        st.markdown(f"<b>{lab}:</b> {p['nom']} <span class='macro-tag'>P:{p['p']}g C:{p['c']}g</span><br><span class='receta-text'>📖 {p['rec']}</span>", unsafe_allow_html=True)
+                    with c2:
+                        if st.button("🔄", key=f"btn_{key}"):
+                            pool = desayunos if j in [0,2] else comidas
+                            st.session_state[key] = seleccionar_plato(pool, pats, paises[pais_sel])
+                            st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
