@@ -3,27 +3,20 @@ import random
 
 st.set_page_config(page_title="Nutri-Flow Pro", page_icon="🍎", layout="wide")
 
-# --- BASE DE DATOS (40 DyM / 60 AyC) ---
-# (Mantenemos la lógica de tags para que el filtrado sea real)
+# --- BASE DE DATOS ---
 paises = {
     "Argentina 🇦🇷": {"zapallito": "Zapallito", "palta": "Palta", "choclo": "Choclo", "frutilla": "Frutilla", "carne": "Peceto", "legumbre": "Lentejones"},
     "México 🇲🇽": {"zapallito": "Calabacita", "palta": "Aguacate", "choclo": "Elote", "frutilla": "Fresa", "carne": "Bistec", "legumbre": "Frijoles"},
     "España 🇪🇸": {"zapallito": "Calabacín", "palta": "Aguacate", "choclo": "Maíz", "frutilla": "Fresa", "carne": "Ternera", "legumbre": "Alubias"}
 }
 
-# Listas reducidas para asegurar estabilidad de carga, pero listas para tus 100 platos
+# (Usa tus listas de 100 platos aquí; mantengo 2 de ejemplo para que el código corra)
 desayunos = [{"nombre": "Yogur con granola y {frutilla}", "tags": ["gf", "db", "ls"], "kcal": 250, "p": 12, "c": 30, "l": 8},
              {"nombre": "Tostadas con {palta} y huevo", "tags": ["db", "ls", "veg"], "kcal": 320, "p": 15, "c": 25, "l": 18}]
 comidas = [{"nombre": "Pollo al grill con calabaza", "tags": ["gf", "db", "ls", "dl"], "kcal": 450, "p": 35, "c": 25, "l": 12},
            {"nombre": "Wok de tofu y arroz integral", "tags": ["vgn", "db", "ls"], "kcal": 500, "p": 18, "c": 60, "l": 15}]
 
-# --- FUNCIONES TÉCNICAS ---
-def diagnosticar_imc(imc):
-    if imc < 18.5: return "Bajo Peso ⚠️", "#ffeb3b"
-    if 18.5 <= imc < 25: return "Normopeso ✅", "#4caf50"
-    if 25 <= imc < 30: return "Sobrepeso 🟠", "#ff9800"
-    return "Obesidad 🔴", "#f44336"
-
+# --- LÓGICA ---
 def ajustar_plato(plato, kcal_obj):
     factor = kcal_obj / plato["kcal"]
     return {
@@ -42,7 +35,7 @@ def buscar_plato(lista, pats_sel, kcal_obj):
     sel = random.choice(filtrados if filtrados else lista)
     return ajustar_plato(sel, kcal_obj)
 
-# --- SIDEBAR (CONTROL TOTAL REESTABLECIDO) ---
+# --- SIDEBAR ---
 with st.sidebar:
     st.header("👤 Ficha Paciente")
     sexo = st.radio("Sexo", ["Masculino", "Femenino"])
@@ -54,8 +47,16 @@ with st.sidebar:
     pi_sugerido = (talla - 100) if sexo == "Masculino" else (talla - 100) * 0.9
     pi_real = st.number_input("Peso Objetivo / Ideal (kg)", 30.0, 200.0, float(pi_sugerido))
     
-    # AF Editable
-    af = st.number_input("Factor AF (NAF)", 1.0, 2.5, 1.2, step=0.025)
+    # AF Desplegable (Vuelve a tu formato favorito)
+    opciones_af = {
+        "Sedentario (1.2)": 1.2,
+        "Leve (1.375)": 1.375,
+        "Moderado (1.55)": 1.55,
+        "Fuerte (1.725)": 1.725,
+        "Muy Fuerte (1.9)": 1.9
+    }
+    af_label = st.selectbox("Actividad Física (AF)", list(opciones_af.keys()))
+    af_valor = opciones_af[af_label]
     
     st.divider()
     st.header("⚖️ Prescripción de Macros")
@@ -72,8 +73,15 @@ with st.sidebar:
 
 # --- CÁLCULOS ---
 tmb = (10 * pi_real) + (6.25 * talla) - (5 * edad) + (5 if sexo == "Masculino" else -161)
-get = tmb * af
+get = tmb * af_valor
 imc = peso_act / ((talla/100)**2)
+
+def diagnosticar_imc(imc_val):
+    if imc_val < 18.5: return "Bajo Peso ⚠️", "#ffeb3b"
+    if 18.5 <= imc_val < 25: return "Normopeso ✅", "#4caf50"
+    if 25 <= imc_val < 30: return "Sobrepeso 🟠", "#ff9800"
+    return "Obesidad 🔴", "#f44336"
+
 diag, color_diag = diagnosticar_imc(imc)
 dist_kcal = [get * 0.20, get * 0.35, get * 0.15, get * 0.30]
 
@@ -97,13 +105,14 @@ with c_info:
 
 if st.button("🚀 GENERAR PLAN NUTRICIONAL"):
     if total_pct == 100:
+        term = paises[pais]
         for i in range(7):
             for j in range(4):
                 lista = desayunos if j in [0, 2] else comidas
                 st.session_state[f"d{i}_m{j}"] = buscar_plato(lista, pats, dist_kcal[j])
         st.session_state.listo = True
     else:
-        st.warning("Corregí los macros para que sumen 100% antes de generar.")
+        st.warning("La suma de macros debe ser 100%.")
 
 if st.session_state.get("listo"):
     dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
