@@ -44,7 +44,26 @@ paises = {
     "España 🇪🇸": {"zapallito": "Calabacín", "palta": "Aguacate", "choclo": "Maíz", "frutilla": "Fresa"}
 }
 
-# --- SIDEBAR: FICHA ANTROPOMÉTRICA ---
+# --- FUNCIONES DE APOYO ---
+def obtener_diagnostico_imc(imc):
+    if imc < 18.5: return "Bajo Peso", "#ffeb3b"
+    if 18.5 <= imc < 25: return "Normopeso", "#4caf50"
+    if 25 <= imc < 30: return "Sobrepeso", "#ff9800"
+    if 30 <= imc < 35: return "Obesidad I", "#ff5722"
+    if 35 <= imc < 40: return "Obesidad II", "#f44336"
+    return "Obesidad III", "#b71c1c"
+
+def obtener_menu(lista, filtros, term):
+    res = lista.copy()
+    if "Celíaco" in filtros: res = [r for r in res if "gf" in r["tags"]]
+    if "Hipertenso" in filtros: res = [r for r in res if "ls" in r["tags"]]
+    if "Diabético" in filtros: res = [r for r in res if "db" in r["tags"]]
+    if "Vegano" in filtros: res = [r for r in res if "vgn" in r["tags"]]
+    if "Dislipemia" in filtros: res = [r for r in res if "dl" in r["tags"]]
+    plato = random.choice(res if res else lista)
+    return {"nom": plato["nombre"].format(**term), "rec": plato["receta"].format(**term), "p": plato.get("pro", 0), "c": plato.get("cho", 0)}
+
+# --- SIDEBAR: ENTRADA DE DATOS ---
 with st.sidebar:
     st.header("👤 Ficha Paciente")
     nombre = st.text_input("Nombre", "Emanuel")
@@ -53,10 +72,10 @@ with st.sidebar:
     peso_actual = st.number_input("Peso Actual (kg)", 10.0, 300.0, 75.0)
     talla = st.number_input("Talla (cm)", 50, 250, 175)
     
-    # AJUSTE BROCA-ASTRUA: Hombre (T-100), Mujer ((T-100)*0.9)
+    # Cálculo PI Broca-Astrua
     pi_sugerido = (talla - 100) if sexo == "Masculino" else (talla - 100) * 0.9
     
-    st.markdown(f"""<div class="pi-box">⚖️ <b>Sugerencia PI (Broca-Astrua):</b> {pi_sugerido:.1f} kg</div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="pi-box">⚖️ <b>Sugerencia PI:</b> {pi_sugerido:.1f} kg</div>""", unsafe_allow_html=True)
     
     peso_objetivo = st.number_input("Peso para el Cálculo (kg)", 10.0, 300.0, float(pi_sugerido))
 
@@ -77,11 +96,60 @@ with st.sidebar:
     pats = st.multiselect("Patologías:", ["Celíaco", "Hipertenso", "Diabético", "Vegetariano", "Vegano", "Dislipemia"])
     pais = st.selectbox("País", list(paises.keys()))
 
-# --- LÓGICA MÉDICA (Ahora después de definir las variables) ---
+# --- CÁLCULOS FINALES ---
 tmb = (10 * peso_objetivo) + (6.25 * talla) - (5 * edad) + (5 if sexo == "Masculino" else -161)
 get = tmb * naf
 imc_actual = peso_actual / ((talla/100)**2)
+diag_texto, diag_color = obtener_diagnostico_imc(imc_actual)
 
-def obtener_diagnostico_imc(imc):
-    if imc < 18.5: return "Bajo Peso", "#ffeb3b"
-    if 18
+# --- MAIN UI ---
+st.title("🍎 Nutri-Flow Pro")
+
+col_m, col_p = st.columns([1, 2])
+
+with col_m:
+    st.markdown(f"""
+    <div class="metric-box">
+        <h4>📊 Informe de Consultorio</h4>
+        <b>IMC Actual:</b> {imc_actual:.1f} 
+        <span style="background-color:{diag_color}; color:black; padding:2px 6px; border-radius:4px; font-size:0.8em; margin-left:5px; font-weight:bold;">
+            {diag_texto}
+        </span><br>
+        <b>Peso de referencia:</b> {peso_objetivo:.1f} kg<br>
+        <b>GET Objetivo:</b> {get:.0f} kcal/día<br>
+        <hr>
+        <b>Gramos:</b><br>
+        🍞 CHO: {(get * p_carb / 400):.1f}g | 🍗 PRO: {(get * p_prot / 400):.1f}g | 🥑 LIP: {(get * p_gras / 900):.1f}g
+    </div>
+    """, unsafe_allow_html=True)
+
+with col_p:
+    if (p_carb + p_prot + p_gras) == 100:
+        if st.button("🚀 GENERAR PLAN SEMANAL"):
+            st.session_state.listo = True
+            term = paises[pais]
+            for i in range(7):
+                st.session_state[f"d_{i}"] = [obtener_menu(desayunos, pats, term), obtener_menu(comidas, pats, term), 
+                                              obtener_menu(desayunos, pats, term), obtener_menu(comidas, pats, term)]
+    else:
+        st.error("La suma de macros debe ser 100%.")
+
+if "listo" in st.session_state:
+    dias_n = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    term = paises[pais]
+    for i, d_nom in enumerate(dias_n):
+        with st.container():
+            c1, c2 = st.columns([5, 1])
+            with c1:
+                st.markdown(f'<div class="day-card"><div style="color:#2e7d32; font-weight:bold; font-size:1.2em; border-bottom:1px solid #eee; margin-bottom:10px;">📅 {d_nom}</div>', unsafe_allow_html=True)
+                labels = ["☕ Desayuno", "☀️ Almuerzo", "🍪 Merienda", "🌙 Cena"]
+                for j, lab in enumerate(labels):
+                    item = st.session_state[f"d_{i}"][j]
+                    st.markdown(f'<div class="meal-box"><b>{lab}:</b> {item["nom"]} <span class="macro-tag">P: {item["p"]}g | C: {item["c"]}g</span><span class="receta-text">📖 {item["rec"]}</span></div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+            with c2:
+                st.write(" ")
+                if st.button("🔄", key=f"re_{i}"):
+                    st.session_state[f"d_{i}"] = [obtener_menu(desayunos, pats, term), obtener_menu(comidas, pats, term), 
+                                                  obtener_menu(desayunos, pats, term), obtener_menu(comidas, pats, term)]
+                    st.rerun()
