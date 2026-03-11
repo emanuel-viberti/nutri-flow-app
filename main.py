@@ -14,16 +14,11 @@ st.markdown("""
         border-left: 8px solid #2e7d32; margin-bottom: 25px; color: #1e1e1e !important;
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-    .meal-row { 
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 8px 0; border-bottom: 1px solid #eee;
-    }
     .receta-text { font-size: 0.85em; color: #666; font-style: italic; display: block; }
     .macro-tag { font-size: 0.75em; background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
     .metric-box { background: #f0f2f6; padding: 15px; border-radius: 10px; color: #333; border: 1px solid #ccc; margin-bottom: 10px;}
     .pi-box { background: #fff3e0; border: 1px solid #ff9800; padding: 10px; border-radius: 8px; color: #e65100; margin-bottom: 10px;}
-    /* Ajuste para que los botones de refresco sean sutiles */
-    .stButton>button { border-radius: 20px; padding: 2px 10px; }
+    .stButton>button { border-radius: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -87,76 +82,4 @@ with st.sidebar:
     st.divider()
     st.header("⚖️ Macros (%)")
     c1, c2, c3 = st.columns(3)
-    p_carb = c1.number_input("CHO", 0, 100, 50)
-    p_prot = c2.number_input("PRO", 0, 100, 20)
-    p_gras = c3.number_input("LIP", 0, 100, 30)
-    
-    pats = st.multiselect("Patologías:", ["Celíaco", "Hipertenso", "Diabético", "Vegetariano", "Vegano", "Dislipemia"])
-    pais_sel = st.selectbox("País", list(paises.keys()))
-
-# --- CÁLCULOS ---
-tmb = (10 * peso_objetivo) + (6.25 * talla) - (5 * edad) + (5 if sexo == "Masculino" else -161)
-get = tmb * naf
-imc_actual = peso_actual / ((talla/100)**2)
-diag_texto, diag_color = obtener_diagnostico_imc(imc_actual)
-
-# --- MAIN UI ---
-st.title("🍎 Nutri-Flow Pro")
-
-col_info, col_plan = st.columns([1, 2.2])
-
-with col_info:
-    st.markdown(f"""
-    <div class="metric-box">
-        <h4>📊 Informe de Consultorio</h4>
-        <b>IMC:</b> {imc_actual:.1f} <small style="color:{diag_color}; font-weight:bold;">[{diag_texto}]</small><br>
-        <b>Peso Ref:</b> {peso_objetivo:.1f} kg | <b>GET:</b> {get:.0f} kcal<br>
-        <hr>
-        <b>Objetivo Diario:</b><br>
-        🍞 {(get * p_carb / 400):.1f}g CHO | 🍗 {(get * p_prot / 400):.1f}g PRO<br>
-        🥑 {(get * p_gras / 900):.1f}g LIP
-    </div>
-    """, unsafe_allow_html=True)
-
-with col_plan:
-    if (p_carb + p_prot + p_gras) == 100:
-        if st.button("🚀 GENERAR / RESETEAR TODO EL PLAN"):
-            st.session_state.listo = True
-            term = paises[pais_sel]
-            for i in range(7): # 7 días
-                # Guardamos cada comida individualmente en session_state
-                st.session_state[f"d{i}_m0"] = seleccionar_plato(desayunos, pats, term)
-                st.session_state[f"d{i}_m1"] = seleccionar_plato(comidas, pats, term)
-                st.session_state[f"d{i}_m2"] = seleccionar_plato(desayunos, pats, term)
-                st.session_state[f"d{i}_m3"] = seleccionar_plato(comidas, pats, term)
-    else:
-        st.error("Los macros deben sumar 100%")
-
-if "listo" in st.session_state:
-    dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-    labels = ["☕ Desayuno", "☀️ Almuerzo", "🍪 Merienda", "🌙 Cena"]
-    term = paises[pais_sel]
-    
-    for i, d_nom in enumerate(dias):
-        with st.container():
-            st.markdown(f'<div class="day-card"><b>📅 {d_nom}</b>', unsafe_allow_html=True)
-            
-            for j, lab in enumerate(labels):
-                key_comida = f"d{i}_m{j}"
-                plato_actual = st.session_state[key_comida]
-                
-                # Fila de comida con botón al lado
-                c_txt, c_btn = st.columns([0.9, 0.1])
-                with c_txt:
-                    st.markdown(f"""
-                        <b>{lab}:</b> {plato_actual['nom']} <span class="macro-tag">P:{plato_actual['p']}g C:{plato_actual['c']}g</span>
-                        <span class="receta-text">📖 {plato_actual['rec']}</span>
-                    """, unsafe_allow_html=True)
-                with c_btn:
-                    if st.button("🔄", key=f"btn_{key_comida}"):
-                        # Solo cambia ESTA comida
-                        pool = desayunos if j in [0, 2] else comidas
-                        st.session_state[key_comida] = seleccionar_plato(pool, pats, term)
-                        st.rerun()
-            
-            st.markdown('</div>', unsafe_allow_html=True)
+    p_carb = c1.number_input("CHO", 0,
