@@ -1,17 +1,44 @@
 import streamlit as st
 import random
+import json
+import os
 
 # 1. CONFIGURACIÓN E INTERFAZ
 st.set_page_config(page_title="Nutri-Flow Pro", page_icon="🍎", layout="wide")
 
-# --- DATA ---
+# --- CARGA DINÁMICA DE DATOS CON AUTO-CREACIÓN ---
+# Datos iniciales para que la app no falle la primera vez
+base_de_datos_semilla = {
+    "desayunos": [
+        {"nombre": "Yogur con granola y {frutilla}", "kcal": 250, "p": 15, "c": 35, "l": 6, "tags": ["gf", "db", "ls"]},
+        {"nombre": "Tostadas con {palta} y huevo", "kcal": 320, "p": 18, "c": 25, "l": 18, "tags": ["db", "ls"]},
+        {"nombre": "Omelette de queso y espinaca", "kcal": 280, "p": 22, "c": 5, "l": 20, "tags": ["gf", "db", "ls"]}
+    ],
+    "comidas": [
+        {"nombre": "Peceto con ensalada de {choclo}", "kcal": 450, "p": 40, "c": 30, "l": 15, "tags": ["gf", "db", "ls", "dl"]},
+        {"nombre": "Wok de tofu y arroz integral", "kcal": 550, "p": 25, "c": 75, "l": 18, "tags": ["vgn", "db", "ls"]},
+        {"nombre": "Pollo al horno con calabaza", "kcal": 420, "p": 38, "c": 35, "l": 12, "tags": ["gf", "db", "ls", "dl"]},
+        {"nombre": "Pastas integrales con brócoli", "kcal": 580, "p": 18, "c": 95, "l": 14, "tags": ["vgn", "db", "ls"]}
+    ]
+}
+
+if not os.path.exists("foods.json"):
+    with open("foods.json", "w", encoding="utf-8") as f:
+        json.dump(base_de_datos_semilla, f, indent=4, ensure_ascii=False)
+
+with open("foods.json", "r", encoding="utf-8") as f:
+    data = json.load(f)
+    desayunos = data["desayunos"]
+    comidas = data["comidas"]
+
+# --- DATA DE PAÍSES ---
 paises = {
     "Argentina 🇦🇷": {"zapallito": "Zapallito", "palta": "Palta", "choclo": "Choclo", "frutilla": "Frutilla", "carne": "Peceto", "legumbre": "Lentejones"},
     "México 🇲🇽": {"zapallito": "Calabacita", "palta": "Aguacate", "choclo": "Elote", "frutilla": "Fresa", "carne": "Bistec", "legumbre": "Frijoles"},
     "España 🇪🇸": {"zapallito": "Calabacín", "palta": "Aguacate", "choclo": "Maíz", "frutilla": "Fresa", "carne": "Ternera", "legumbre": "Alubias"}
 }
 
-# Límites de variedad semanal (Regla de negocio)
+# Límites de variedad semanal
 LIMITES_SEMANALES = {
     "Pollo al horno con calabaza": 3,
     "Yogur con granola y {frutilla}": 4,
@@ -20,19 +47,7 @@ LIMITES_SEMANALES = {
     "Peceto con ensalada de {choclo}": 3
 }
 
-# --- CARGA DINÁMICA DE DATOS ---
-import json
-
-try:
-    with open("foods.json", "r", encoding="utf-8") as f:
-        data = json.load(f)
-    desayunos = data["desayunos"]
-    comidas = data["comidas"]
-except FileNotFoundError:
-    st.error("⚠️ No se encontró 'foods.json'. Asegúrate de que el archivo esté en la misma carpeta.")
-    st.stop()
-
-# --- MOTOR DE GENERACIÓN ---
+# --- MOTOR DE PRECISIÓN Y VARIEDAD ---
 def generar_dia_estricto(get_obj, p_obj, c_obj, l_obj, tags_req, historial_global, conteo_uso):
     d_aptos_base = [p for p in desayunos if all(t in p["tags"] for t in tags_req)]
     c_aptos_base = [p for p in comidas if all(t in p["tags"] for t in tags_req)]
@@ -48,9 +63,8 @@ def generar_dia_estricto(get_obj, p_obj, c_obj, l_obj, tags_req, historial_globa
         for j in range(4):
             pool = d_aptos_base if j in [0,2] else c_aptos_base
             
-            # Filtro 1: Límites semanales
+            # Filtro variedad: Límite semanal y no repetir en 48hs (8 comidas previas)
             pool_filtrado = [p for p in pool if conteo_uso.get(p["nombre"], 0) < LIMITES_SEMANALES.get(p["nombre"], 7)]
-            # Filtro 2: Variedad 48hs (no repetir lo de las últimas 8 comidas)
             pool_filtrado = [p for p in pool_filtrado if p["nombre"] not in historial_global[-8:]]
             
             plato_base = random.choice(pool_filtrado if pool_filtrado else pool)
