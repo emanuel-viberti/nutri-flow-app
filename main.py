@@ -20,18 +20,17 @@ LIMITES_SEMANALES = {
     "Peceto con ensalada de {choclo}": 3
 }
 
-desayunos = [
-    {"nombre": "Yogur con granola y {frutilla}", "kcal": 250, "p": 15, "c": 35, "l": 6, "tags": ["gf", "db", "ls"]},
-    {"nombre": "Tostadas con {palta} y huevo", "kcal": 320, "p": 18, "c": 25, "l": 18, "tags": ["db", "ls"]},
-    {"nombre": "Omelette de queso y espinaca", "kcal": 280, "p": 22, "c": 5, "l": 20, "tags": ["gf", "db", "ls"]}
-]
+# --- CARGA DINÁMICA DE DATOS ---
+import json
 
-comidas = [
-    {"nombre": "Peceto con ensalada de {choclo}", "kcal": 450, "p": 40, "c": 30, "l": 15, "tags": ["gf", "db", "ls", "dl"]},
-    {"nombre": "Wok de tofu y arroz integral", "kcal": 550, "p": 25, "c": 75, "l": 18, "tags": ["vgn", "db", "ls"]},
-    {"nombre": "Pollo al horno con calabaza", "kcal": 420, "p": 38, "c": 35, "l": 12, "tags": ["gf", "db", "ls", "dl"]},
-    {"nombre": "Pastas integrales con brócoli", "kcal": 580, "p": 18, "c": 95, "l": 14, "tags": ["vgn", "db", "ls"]}
-]
+try:
+    with open("foods.json", "r", encoding="utf-8") as f:
+        data = json.load(f)
+    desayunos = data["desayunos"]
+    comidas = data["comidas"]
+except FileNotFoundError:
+    st.error("⚠️ No se encontró 'foods.json'. Asegúrate de que el archivo esté en la misma carpeta.")
+    st.stop()
 
 # --- MOTOR DE GENERACIÓN ---
 def generar_dia_estricto(get_obj, p_obj, c_obj, l_obj, tags_req, historial_global, conteo_uso):
