@@ -63,10 +63,12 @@ with c_info:
         st.error(f"Suma: {total_macros}% (debe ser 100)")
     else:
         if st.button("🚀 GENERAR PLAN SEMANAL", use_container_width=True):
-            historial = []
-            # LIMPIEZA: Borramos planes viejos para que no queden restos de otras pruebas
-            for i in range(7):
-                if f"d_{i}" in st.session_state: del st.session_state[f"d_{i}"]
+    historial = [] # Reiniciamos el historial de platos repetidos
+    # Forzamos la limpieza de la memoria de Streamlit
+    for i in range(7):
+        st.session_state[f"d_{i}"] = None 
+    
+    # ... resto del código de generación ...
             
             # GENERACIÓN
             for i in range(7):
