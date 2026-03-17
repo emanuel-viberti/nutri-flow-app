@@ -70,24 +70,38 @@ def generar_dia_estricto(get_obj, p_obj, c_obj, l_obj, desayunos_pool, comidas_p
             
     return None, (0, 0, 0, 0)
 
-# --- SIDEBAR (INTERFAZ) ---
+# --- SIDEBAR (CORREGIDO: PESO IDEAL Y MACROS DINÁMICOS) ---
 with st.sidebar:
     st.header("👤 Ficha del Paciente")
     sexo = st.radio("Sexo", ["Masculino", "Femenino"])
     talla = st.number_input("Talla (cm)", 100, 250, 175)
     peso_act = st.number_input("Peso Actual (kg)", 30.0, 200.0, 80.0)
     edad = st.number_input("Edad", 1, 110, 30)
-    pi_real = st.number_input("Peso Objetivo (kg)", 30.0, 200.0, value=float(talla-100))
+    
+    # CORRECCIÓN PI: Fórmula diferenciada por sexo
+    if sexo == "Masculino":
+        pi_sugerido = float(talla - 100)
+    else:
+        pi_sugerido = float((talla - 100) * 0.9)
+        
+    pi_real = st.number_input("Peso Objetivo (kg)", 30.0, 200.0, value=pi_sugerido)
     
     af_opts = {1.2: "Sedentario", 1.375: "Leve", 1.55: "Moderado", 1.725: "Fuerte"}
     af_val = st.selectbox("Actividad Física", options=list(af_opts.keys()), format_func=lambda x: af_opts[x])
     
     st.divider()
-    st.subheader("⚙️ Macros (%)")
-    p_cho = st.slider("% Carbohidratos", 0, 100, 50)
-    p_pro = st.slider("% Proteínas", 0, 100, 25)
-    p_lip = 100 - p_cho - p_pro
-    st.caption(f"Lípidos automáticos: {p_lip}%")
+    st.subheader("⚙️ Distribución de Macros")
+    
+    # CORRECCIÓN GRASAS: Ahora todos son editables
+    p_cho = st.number_input("% Carbohidratos", 0, 100, 50)
+    p_pro = st.number_input("% Proteínas", 0, 100, 25)
+    p_lip = st.number_input("% Lípidos (Grasas)", 0, 100, 25)
+    
+    total_macros = p_cho + p_pro + p_lip
+    if total_macros != 100:
+        st.error(f"⚠️ La suma debe ser 100%. Actual: {total_macros}%")
+    else:
+        st.success("✅ Distribución correcta")
 
     st.divider()
     st.subheader("📋 Perfil Alimentario")
@@ -101,10 +115,15 @@ with st.sidebar:
     
     pais_sel = st.selectbox("País de Residencia", list(paises.keys()))
 
-# --- CÁLCULOS TÉCNICOS ---
+# --- CÁLCULOS TÉCNICOS (AJUSTADOS) ---
+# TMB usando el peso objetivo para el plan
 tmb = (10 * pi_real) + (6.25 * talla) - (5 * edad) + (5 if sexo == "Masculino" else -161)
 get = tmb * af_val
-obj_p, obj_c, obj_l = (get*p_pro/400), (get*p_cho/400), (get*p_lip/900)
+
+# Cálculo de gramos finales
+obj_p = (get * p_pro / 400)
+obj_c = (get * p_cho / 400)
+obj_l = (get * p_lip / 900)
 
 # --- FILTRADO DE BASE DE DATOS ---
 d_final = filtrar_platos(desayunos_db, tags_usuario)
