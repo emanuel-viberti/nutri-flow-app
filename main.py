@@ -49,11 +49,20 @@ LIMITES_SEMANALES = {
 
 # --- MOTOR DE PRECISIÓN Y VARIEDAD ---
 def generar_dia_estricto(get_obj, p_obj, c_obj, l_obj, tags_req, historial_global, conteo_uso):
+    # 1. Intentar filtrar por patologías (si hay alguna seleccionada)
     d_aptos_base = [p for p in desayunos if all(t in p["tags"] for t in tags_req)]
     c_aptos_base = [p for p in comidas if all(t in p["tags"] for t in tags_req)]
     
-    if not d_aptos_base: d_aptos_base = desayunos
-    if not c_aptos_base: c_aptos_base = comidas
+    # SALVAVIDAS 1: Si no hay platos con esos tags, ignorar patologías y usar todo
+    if not d_aptos_base:
+        d_aptos_base = desayunos
+    if not c_aptos_base:
+        c_aptos_base = comidas
+
+    # SALVAVIDAS 2: Si las listas siguen vacías (error en el JSON), evitar el crash
+    if not d_aptos_base or not c_aptos_base:
+        st.error("⚠️ Error crítico: Las listas de alimentos están vacías. Revisa el formato de tu foods.json.")
+        return None, (0, 0, 0, 0)
 
     for _ in range(1000):
         dia = []
@@ -63,11 +72,14 @@ def generar_dia_estricto(get_obj, p_obj, c_obj, l_obj, tags_req, historial_globa
         for j in range(4):
             pool = d_aptos_base if j in [0,2] else c_aptos_base
             
-            # Filtro variedad: Límite semanal y no repetir en 48hs (8 comidas previas)
+            # Filtro variedad: Límite semanal y 48hs
             pool_filtrado = [p for p in pool if conteo_uso.get(p["nombre"], 0) < LIMITES_SEMANALES.get(p["nombre"], 7)]
             pool_filtrado = [p for p in pool_filtrado if p["nombre"] not in historial_global[-8:]]
             
-            plato_base = random.choice(pool_filtrado if pool_filtrado else pool)
+            # SALVAVIDAS 3: Si los filtros de variedad vacían la lista, usar el pool sin filtrar
+            seleccion_final = pool_filtrado if pool_filtrado else pool
+            
+            plato_base = random.choice(seleccion_final)
             factor = round((dist[j] / plato_base["kcal"]) * 4) / 4
             if factor == 0: factor = 0.25
             
@@ -91,7 +103,6 @@ def generar_dia_estricto(get_obj, p_obj, c_obj, l_obj, tags_req, historial_globa
             return dia, (tk, tp, tc, tl)
             
     return dia, (tk, tp, tc, tl)
-
 # --- SIDEBAR ---
 with st.sidebar:
     st.header("👤 Ficha")
