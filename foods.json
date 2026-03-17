@@ -1,1 +1,25 @@
-
+{
+  "desayunos": [
+    {"nombre": "Yogur natural con granola y {frutilla}", "kcal": 250, "p": 15, "c": 35, "l": 6, "tags": ["gf", "db", "ls"]},
+    {"nombre": "Tostadas de pan integral con {palta} y huevo poché", "kcal": 320, "p": 18, "c": 25, "l": 18, "tags": ["db", "ls"]},
+    {"nombre": "Omelette de claras con espinaca y queso cuartirolo", "kcal": 210, "p": 22, "c": 3, "l": 12, "tags": ["gf", "db", "ls"]},
+    {"nombre": "Bowl de avena cocida con leche de almendras y nueces", "kcal": 310, "p": 12, "c": 45, "l": 10, "tags": ["vgn", "ls"]},
+    {"nombre": "Pancakes de avena y banana con hilitos de miel", "kcal": 280, "p": 10, "c": 42, "l": 8, "tags": ["db"]},
+    {"nombre": "Infusión con 2 tostadas de arroz y queso crema", "kcal": 180, "p": 6, "c": 28, "l": 5, "tags": ["gf", "db", "ls"]},
+    {"nombre": "Batido de banana, leche y semillas de chía", "kcal": 260, "p": 9, "c": 40, "l": 8, "tags": ["gf", "ls"]},
+    {"nombre": "Sandwich de pan negro con queso tybo y tomate", "kcal": 290, "p": 14, "c": 35, "l": 10, "tags": ["db", "ls"]},
+    {"nombre": "Yogur griego con mix de frutos secos", "kcal": 310, "p": 18, "c": 12, "l": 20, "tags": ["gf", "db", "ls"]},
+    {"nombre": "Mate cocido con 3 galletitas de agua y mermelada light", "kcal": 150, "p": 4, "c": 30, "l": 2, "tags": ["ls", "db"]},
+    {"nombre": "Budín de avena y manzana casero (1 porción)", "kcal": 220, "p": 7, "c": 32, "l": 8, "tags": ["db", "ls"]},
+    {"nombre": "Tazón de leche con copos de maíz sin azúcar", "kcal": 240, "p": 10, "c": 45, "l": 4, "tags": ["gf", "db", "ls"]},
+    {"nombre": "Ensalada de frutas frescas con semillas de girasol", "kcal": 190, "p": 3, "c": 38, "l": 5, "tags": ["vgn", "gf", "ls"]},
+    {"nombre": "Tostadas de pan de campo con ricota y ralladura de limón", "kcal": 260, "p": 12, "c": 32, "l": 9, "tags": ["db", "ls"]},
+    {"nombre": "Muffin de salvado y pasas de uva", "kcal": 230, "p": 5, "c": 38, "l": 7, "tags": ["ls"]},
+    {"nombre": "Smoothie verde (espinaca, manzana y jengibre)", "kcal": 140, "p": 3, "c": 30, "l": 1, "tags": ["vgn", "gf", "db", "ls"]},
+    {"nombre": "2 Huevos revueltos con una pizca de orégano", "kcal": 160, "p": 14, "c": 1, "l": 11, "tags": ["gf", "db", "ls"]},
+    {"nombre": "Rebanada de pan integral con hummus de garbanzo", "kcal": 250, "p": 10, "c": 35, "l": 8, "tags": ["vgn", "db", "ls"]},
+    {"nombre": "Porción de queso y dulce de membrillo light", "kcal": 240, "p": 12, "c": 30, "l": 9, "tags": ["gf", "ls"]},
+    {"nombre": "Yogur con arándanos y copos de avena", "kcal": 230, "p": 11, "c": 34, "l": 6, "tags": ["ls", "db"]}
+  ],
+  "comidas": [] 
+}
