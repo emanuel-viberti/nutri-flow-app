@@ -117,7 +117,51 @@ with st.sidebar:
     st.divider()
     st.header("⚖️ Macros")
     p_cho, p_pro, p_lip = st.number_input("% CHO", 0, 100, 50), st.number_input("% PRO", 0, 100, 20), st.number_input("% LIP", 0, 100, 30)
-    pats = st.multiselect("Patologías", ["Celíaco", "Hipertenso", "Diabético", "Vegano", "Dislipemia"])
+    # Reemplazo de la sección de patologías por Perfil del Paciente
+st.sidebar.subheader("Perfil del Paciente")
+
+opciones_perfil = st.sidebar.multiselect(
+    "Preferencias y Restricciones:",
+    options=[
+        "Celíaco (gf)", 
+        "Diabético (db)", 
+        "Hipertenso/Bajo Sodio (ls)", 
+        "Vegano (vgn)", 
+        "Vegetariano (vgn)", 
+        "Dislipemia (dl)",
+        "Almuerzo en el Trabajo (tp)" 
+    ],
+    help="Seleccione las condiciones médicas o el estilo de vida del paciente."
+)
+
+# Diccionario para traducir el texto del multiselect a los tags del JSON
+mapping = {
+   def filtrar_platos(base_datos, tags_usuario):
+    """
+    Filtra la lista de platos. 
+    Si el usuario no elige nada, devuelve todo.
+    Si elige algo, el plato debe contener TODOS los tags seleccionados.
+    """
+    if not tags_usuario:
+        return base_datos
+    
+    # Solo entran los platos que tienen cada uno de los tags pedidos
+    platos_filtrados = [
+        plato for plato in base_datos 
+        if all(tag in plato['tags'] for tag in tags_usuario)
+    ]
+    return platos_filtrados
+
+# Aplicamos el filtro a tu base de datos (reemplazá 'base_datos_500' por el nombre de tu variable)
+platos_aptos = filtrar_platos(base_datos_500, pats_tags)
+
+# Mensaje de control por si se pasan de filtros y no queda nada
+if not platos_aptos:
+    st.warning("⚠️ No se encontraron platos que cumplan con todas las condiciones. Probá quitando algún filtro.")
+}
+
+# Creamos la lista de tags corta (ej: ['gf', 'tp'])
+pats_tags = [mapping[opt] for opt in opciones_perfil]
     pais = st.selectbox("País", list(paises.keys()))
 
 # --- CALCULOS ---
