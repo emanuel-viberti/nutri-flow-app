@@ -2,66 +2,58 @@
 import random
 
 def generar_dia_estricto(get_obj, p_obj, c_obj, l_obj, desayunos_pool, comidas_pool, historial_global, conteo_uso):
-    """
-    Generador por aproximación total diaria. 
-    Busca que la SUMA del día sea la correcta, no cada comida por separado.
-    """
-    
-    for intento in range(4000): # Más intentos para asegurar éxito
-        dia = []
+    best_day = None
+    min_error = float('inf')
+
+    for _ in range(2000):
+        dia_actual = []
         nombres_dia = []
         
-        # 1. Selección al azar de los 4 platos
-        # Elegimos 2 del pool de desayunos/meriendas y 2 de comidas/cenas
-        d1 = random.choice(desayunos_pool)
-        a1 = random.choice(comidas_pool)
-        m1 = random.choice(desayunos_pool)
-        c1 = random.choice(comidas_pool)
+        # Elegimos 4 platos al azar (2 desayunos/meriendas, 2 almuerzos/cenas)
+        platos = [
+            random.choice(desayunos_pool), # Desayuno
+            random.choice(comidas_pool),   # Almuerzo
+            random.choice(desayunos_pool), # Merienda
+            random.choice(comidas_pool)    # Cena
+        ]
         
-        platos_seleccionados = [d1, a1, m1, c1]
+        # Ajustamos el factor global del día para que las KCAL cierren
+        kcal_base = sum(p['kcal'] for p in platos)
+        factor = get_obj / kcal_base
+        # Limitamos factor para no tener porciones locas
+        factor = max(0.5, min(factor, 2.5)) 
         
-        # 2. Aplicamos un factor de porción inicial basado en el GET total
-        # Calculamos cuántas kcal suman los 4 platos base
-        kcal_base_total = sum(p['kcal'] for p in platos_seleccionados)
-        factor_ajuste = get_obj / kcal_base_total
-        
-        # Limitamos el factor para que no sea una porción ridícula (ej: x0.1 o x5)
-        if factor_ajuste < 0.5: factor_ajuste = 0.5
-        if factor_ajuste > 2.0: factor_ajuste = 2.0
-        
-        # 3. Construimos el día con ese factor
-        for p_base in platos_seleccionados:
-            dia.append({
-                "nom": p_base["nombre"],
-                "kcal": p_base["kcal"] * factor_ajuste,
-                "p": p_base["p"] * factor_ajuste,
-                "c": p_base["c"] * factor_ajuste,
-                "l": p_base["l"] * factor_ajuste,
-                "factor": round(factor_ajuste * 4) / 4 # Redondeo nutricional
+        for p in platos:
+            dia_actual.append({
+                "nom": p["nombre"],
+                "kcal": p["kcal"] * factor,
+                "p": p["p"] * factor,
+                "c": p["c"] * factor,
+                "l": p["l"] * factor,
+                "factor": round(factor * 4) / 4
             })
-            nombres_dia.append(p_base["nombre"])
-            
-        # 4. Totales del día
-        tk = sum(x["kcal"] for x in dia)
-        tp = sum(x["p"] for x in dia)
-        tc = sum(x["c"] for x in dia)
-        tl = sum(x["l"] for x in dia)
-        
-        # 5. Tolerancia evolutiva (Margen de error)
-        # Empezamos en 15% y subimos hasta 35% si es muy difícil
-        tol = 0.15 + (intento // 800) * 0.05
-        
-        def check(real, obj, t):
-            return abs(real - obj) / obj <= t if obj > 0 else True
+            nombres_dia.append(p["nombre"])
 
-        # Solo validamos el TOTAL DIARIO
-        if all([check(tk, get_obj, tol), check(tp, p_obj, tol), check(tc, c_obj, tol), check(tl, l_obj, tol)]):
-            # Filtro de variedad: si ya se repitió mucho, intentamos de nuevo 
-            # (pero solo si estamos en los primeros intentos)
-            if intento < 1000 and any(n in historial_global[-8:] for n in nombres_dia):
-                continue
-                
-            historial_global.extend(nombres_dia)
-            return dia, (tk, tp, tc, tl)
-            
-    return None, (0, 0, 0, 0)
+        # Calculamos error total de este intento (Diferencia vs Objetivo)
+        tk = sum(x["kcal"] for x in dia_actual)
+        tp = sum(x["p"] for x in dia_actual)
+        tc = sum(x["c"] for x in dia_actual)
+        tl = sum(x["l"] for x in dia_actual)
+        
+        error = abs(tk-get_obj)/get_obj + abs(tp-p_obj)/p_obj + abs(tc-c_obj)/c_obj + abs(tl-l_obj)/l_obj
+        
+        # Si es el mejor error hasta ahora, lo guardamos
+        if error < min_error:
+            # Penalizamos si el plato ya está en el historial reciente
+            penalizacion = 0.5 if any(n in historial_global[-8:] for n in nombres_dia) else 0
+            if (error + penalizacion) < min_error:
+                min_error = error + penalizacion
+                best_day = (dia_actual, (tk, tp, tc, tl), nombres_dia)
+        
+        # Si el error es casi nulo (menos del 5%), cortamos acá por éxito
+        if error < 0.05:
+            break
+
+    # Retornamos el mejor resultado que hayamos encontrado
+    historial_global.extend(best_day[2])
+    return best_day[0], best_day[1]
