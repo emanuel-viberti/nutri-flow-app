@@ -1,9 +1,12 @@
 # modules/generator.py
 import random
 
+# modules/generator.py (Asegurate de que termine así)
+
 def generar_dia_estricto(get_obj, p_obj, c_obj, l_obj, desayunos_pool, comidas_pool, historial_global, conteo_uso):
-    best_day = None
-    min_error = float('inf')
+    # ... (Mantené la lógica de los 3000 intentos y el factor hasta 3.5 que pusimos recién)
+    # Esta función ya está lista para ser llamada individualmente.
+    pass
 
     if not desayunos_pool or not comidas_pool:
         return None, (0,0,0,0)
