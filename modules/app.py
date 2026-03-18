@@ -66,31 +66,25 @@ if st.sidebar.button("🚀 Generar Plan Semanal"):
             st.session_state.dieta_semanal[dia] = (dia_res, macros_res)
     st.rerun()
 
-# 6. VISUALIZACIÓN Y BOTONES DE INTERCAMBIO
+# 6. VISUALIZACIÓN Y BOTONES DE INTERCAMBIO (Reemplazá desde aquí)
 st.title("🍎 Tu Plan Nutricional Personalizado")
 
 if st.session_state.dieta_semanal:
-    for dia, (platos, macros) in st.session_state.dieta_semanal.items():
-        with st.expander(f"📅 {dia} - ({int(macros[0])} kcal)", expanded=True):
-            col_tabla, col_btn = st.columns([0.85, 0.15])
+    # Usamos un contenedor para que todo esté ordenado
+    for dia in ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]:
+        if dia in st.session_state.dieta_semanal:
+            platos, macros = st.session_state.dieta_semanal[dia]
             
-            with col_tabla:
-                # Mostramos los platos en una tabla limpia
-                rows = []
-                momentos = ["Desayuno", "Almuerzo", "Merienda", "Cena"]
-                for i, p in enumerate(platos):
-                    rows.append({
-                        "Momento": momentos[i],
-                        "Plato": p["nom"],
-                        "Porción": f"x{p['factor']}",
-                        "Kcal": f"{int(p['kcal'])}",
-                        "P": f"{int(p['p'])}g", "C": f"{int(p['c'])}g", "L": f"{int(p['l'])}g"
-                    })
-                st.table(rows)
+            # --- ACÁ ESTÁ EL CAMBIO CLAVE ---
+            # Creamos dos columnas: una para el título y otra para el botón 🔄
+            col_titulo, col_boton = st.columns([0.85, 0.15])
             
-            with col_btn:
-                st.write("") # Espaciado
-                if st.button("🔄", key=f"btn_{dia}", help=f"Cambiar menú del {dia}"):
+            with col_titulo:
+                st.subheader(f"📅 {dia} - ({int(macros[0])} kcal)")
+            
+            with col_boton:
+                # El botón ahora está bien arriba y visible
+                if st.button("🔄 Intercambiar", key=f"btn_{dia}"):
                     # Regenerar solo este día
                     nuevo_dia, nuevos_macros = generar_dia_estricto(
                         get_diaria, p_g, c_g, l_g, 
@@ -99,9 +93,24 @@ if st.session_state.dieta_semanal:
                     )
                     if nuevo_dia:
                         st.session_state.dieta_semanal[dia] = (nuevo_dia, nuevos_macros)
-                        st.success(f"¡{dia} actualizado!")
                         st.rerun()
+
+            # Mostramos la tabla debajo de los títulos
+            rows = []
+            momentos = ["Desayuno", "Almuerzo", "Merienda", "Cena"]
+            for i, p in enumerate(platos):
+                rows.append({
+                    "Momento": momentos[i],
+                    "Plato": p["nom"],
+                    "Porción": f"x{p['factor']}",
+                    "Kcal": f"{int(p['kcal'])}",
+                    "P": f"{int(p['p'])}g", 
+                    "C": f"{int(p['c'])}g", 
+                    "L": f"{int(p['l'])}g"
+                })
             
-            st.caption(f"Totales del día: P: {int(macros[1])}g | C: {int(macros[2])}g | L: {int(macros[3])}g")
+            st.table(rows)
+            st.caption(f"🎯 Totales: Proteína: {int(macros[1])}g | Carbos: {int(macros[2])}g | Grasas: {int(macros[3])}g")
+            st.divider() # Una línea para separar los días
 else:
     st.info("Configurá tus macros y dale al botón 'Generar Plan Semanal' para empezar.")
