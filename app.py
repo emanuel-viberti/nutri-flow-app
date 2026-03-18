@@ -8,11 +8,9 @@ st.set_page_config(page_title="Nutri-Flow Pro", layout="wide")
 
 # 2. CARGA DE DATOS CON SEGURIDAD
 def cargar_datos():
-    # Buscamos el archivo en la carpeta actual
     archivo = 'foods.json' 
     if not os.path.exists(archivo):
         st.error(f"❌ ERROR: No encuentro el archivo '{archivo}' en la carpeta raíz.")
-        st.info("Asegurate de que el archivo NO esté dentro de ninguna carpeta como 'data' o 'modules'.")
         st.stop()
     
     try:
@@ -60,7 +58,7 @@ def generar_dia(get_obj, p_obj, c_obj, l_obj, desayunos, comidas, historial):
             if error < min_error:
                 min_error = error
                 best_day = (dia_actual, (tk, tp, tc, tl), nombres)
-            if error < (0.08 if i < 2000 else 0.15): break
+            if error < (0.08 if i < 2000 else 0.12): break
         except: continue
     
     if best_day:
@@ -75,7 +73,9 @@ c_p = st.sidebar.slider("Carbohidratos %", 10, 70, 55)
 p_p = st.sidebar.slider("Proteínas %", 10, 50, 25)
 l_p = st.sidebar.slider("Lípidos %", 10, 50, 20)
 
-t_p, t_c, t_l = (kcal_target*p_p/100/4), (kcal_target*c_p/100/4), (kcal_target*l_p/100/9)
+t_p = (kcal_target * (p_p/100)) / 4
+t_c = (kcal_target * (c_p/100)) / 4
+t_l = (kcal_target * (l_p/100)) / 9
 
 if 'semana' not in st.session_state: st.session_state.semana = {}
 if 'historial' not in st.session_state: st.session_state.historial = []
@@ -110,4 +110,4 @@ if st.session_state.semana:
             st.table(tabla)
             st.divider()
 else:
-    st.info("Configurá y dale a 'Generar Plan'.")
+    st.info("Configurá los macros y dale a 'GENERAR PLAN'.")
